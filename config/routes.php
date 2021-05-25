@@ -67,6 +67,9 @@ Router::scope('/auth', function (RouteBuilder $routes) {
 
     $routes->connect('/logout', ['prefix' => 'Auth', 'controller' => 'AuthLogout', 'action' => 'logoutGet'])
         ->setMethods(['GET']);
+
+    $routes->connect('/jwks', ['prefix' => 'Auth', 'controller' => 'AuthJwks', 'action' => 'index'])
+        ->setMethods(['GET']);
 });
 
 /**

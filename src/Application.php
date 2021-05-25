@@ -25,6 +25,8 @@ use App\Notification\Email\Redactor\CoreEmailRedactorPool;
 use App\Notification\EmailDigest\DigestRegister\GroupDigests;
 use App\Notification\EmailDigest\DigestRegister\ResourceDigests;
 use App\Notification\NotificationSettings\CoreNotificationSettingsDefinition;
+use App\Service\JwtAuthentication\GetJwksPublicService;
+use App\Service\JwtAuthentication\GetJwtUserTokenSecretService;
 use Authentication\AuthenticationService;
 use Authentication\AuthenticationServiceInterface;
 use Authentication\AuthenticationServiceProviderInterface;
@@ -278,6 +280,21 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
         }
 
         // Load the authenticators. Session should be first.
+        $jwtPublicKey = null;
+        try {
+            $jwtPublicKey = (new GetJwksPublicService())->getPublicKey();
+        } catch (\Throwable $e) {
+        }
+
+        if ($jwtPublicKey !== null) {
+            $service->loadIdentifier('Authentication.JwtSubject');
+            $service->loadAuthenticator('Authentication.Jwt', [
+                'header' => GetJwtUserTokenSecretService::HEADER,
+                'secretKey' => file_get_contents(GetJwksPublicService::PUBLIC_KEY_PATH),
+                'algorithms' => [GetJwtUserTokenSecretService::ALG],
+                'returnPayload' => false,
+            ]);
+        }
         $service->loadAuthenticator('Authentication.Session');
         $service->loadAuthenticator('Gpg');
 

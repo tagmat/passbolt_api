@@ -33,7 +33,6 @@ use Cake\Routing\Router;
  *
  * @property \App\Controller\Component\UserComponent $User
  * @property \App\Controller\Component\QueryStringComponent $QueryString
- * @property \Cake\Controller\Component\AuthComponent $Auth
  * @property \Authentication\Controller\Component\AuthenticationComponent $Authentication
  * @link http://book.cakephp.org/3.0/en/controllers.html#the-app-controller
  */

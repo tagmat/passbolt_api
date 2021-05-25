@@ -100,7 +100,7 @@ trait UsersFindersTrait
     private function _filterQueryByResourceAccess(\Cake\ORM\Query $query, string $resourceId)
     {
         if (!Validation::uuid($resourceId)) {
-            throw new InvalidArgumentException('The resource identifier should be a valid UUID.');
+            throw new InvalidArgumentException(__('The resource identifier should be a valid UUID.'));
         }
 
         // The query requires a join with Permissions not constraint with the default condition added by the HasMany
