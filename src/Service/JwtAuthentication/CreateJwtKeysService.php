@@ -37,23 +37,25 @@ class CreateJwtKeysService
     }
 
     /**
-     * @return bool
+     * @param bool $force Force the creation of a new pair.
+     * @return bool if a pair was created.
      */
-    public function createKeyPair(): bool
+    public function createKeyPair(bool $force = false): bool
     {
         $secretFile = $this->secretService->getKeyPath();
         $publicFile = $this->publicService->getKeyPath();
 
-        if (!is_readable($secretFile)) {
+        $pairIsNotComplete = !is_readable($secretFile) || !is_readable($publicFile);
+
+        if ($pairIsNotComplete || $force) {
             # generate private key
             exec('openssl genrsa -out ' . $secretFile . ' 1024');
-        }
-
-        if (!is_readable($publicFile)) {
             # generate public key
             exec('openssl rsa -in ' . $secretFile . ' -outform PEM -pubout -out ' . $publicFile);
-        }
 
-        return true;
+            return true;
+        } else {
+            return false;
+        }
     }
 }

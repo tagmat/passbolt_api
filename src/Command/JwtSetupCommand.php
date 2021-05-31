@@ -16,6 +16,7 @@ declare(strict_types=1);
  */
 namespace App\Command;
 
+use App\Service\JwtAuthentication\CreateJwtKeysService;
 use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
@@ -46,13 +47,17 @@ class JwtSetupCommand extends PassboltCommand
     {
         parent::execute($args, $io);
 
-        // TODO: wrap this in a Service handling all potential errors
+        $force = $args->getOption('force');
 
-        # generate private key
-        exec('openssl genrsa -out config/jwt.key 1024');
+        $service = new CreateJwtKeysService();
+        $result = $service->createKeyPair($force);
 
-        # generate public key
-        exec('openssl rsa -in config/jwt.key -outform PEM -pubout -out config/jwt.pem');
+        // TODO: we might want to provide more information here.
+        if ($result) {
+            $io->success('The JWT key pair was successfully created.');
+        } else {
+            $io->error('The JWT key pair was not created.');
+        }
 
         return $this->successCode();
     }
