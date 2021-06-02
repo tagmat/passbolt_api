@@ -16,6 +16,7 @@ declare(strict_types=1);
  */
 namespace App;
 
+use App\Error\Exception\JWT\JwtKeyPairNotValidException;
 use App\Middleware\ContentSecurityPolicyMiddleware;
 use App\Middleware\CsrfProtectionMiddleware;
 use App\Middleware\GpgAuthHeadersMiddleware;
@@ -280,10 +281,13 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
         }
 
         // Load the authenticators. Session should be first.
+        $service->loadAuthenticator('Authentication.Session');
+        $service->loadAuthenticator('Gpg');
+
         $jwtPublicKey = null;
         try {
             $jwtPublicKey = (new GetJwksPublicService())->getPublicKey();
-        } catch (\Throwable $e) {
+        } catch (JwtKeyPairNotValidException $e) {
         }
 
         if ($jwtPublicKey !== null) {
@@ -295,8 +299,6 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
                 'returnPayload' => false,
             ]);
         }
-        $service->loadAuthenticator('Authentication.Session');
-        $service->loadAuthenticator('Gpg');
 
         return $service;
     }

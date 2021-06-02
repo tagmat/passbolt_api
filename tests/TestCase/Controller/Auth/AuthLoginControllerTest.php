@@ -16,6 +16,7 @@ declare(strict_types=1);
  */
 namespace App\Test\TestCase\Controller\Auth;
 
+use App\Service\JwtAuthentication\GetJwtUserTokenSecretService;
 use App\Test\Lib\AppIntegrationTestCase;
 use App\Utility\OpenPGP\OpenPGPBackendFactory;
 use App\Utility\UuidFactory;
@@ -294,7 +295,7 @@ class AuthLoginControllerTest extends AppIntegrationTestCase
         $this->assertTrue($isValid, 'There should a valid auth token');
 
         // Send it back!
-        $this->post('/auth/login.json', [
+        $this->postJson('/auth/login.json', [
             'data' => [
                 'gpg_auth' => [
                     'keyid' => $this->adaKeyId, // Ada's key
@@ -318,6 +319,18 @@ class AuthLoginControllerTest extends AppIntegrationTestCase
         // Authentication token should be disabled at that stage
         $isValid = $AuthToken->isValid($uuid, UuidFactory::uuid('user.id.ada'));
         $this->assertFalse($isValid, 'There should not be a valid auth token');
+
+        // Check that the JWT token is set.
+        /** @var string $jwtToken */
+        $jwtToken = $this->_responseJsonBody->{GetJwtUserTokenSecretService::USER_TOKEN_KEY} ?? null;
+        $this->assertIsString($jwtToken);
+
+        // Ensure that the JWT Token delivered is valid.
+        $this->getJson('/auth/is-authenticated.json');
+        $this->assertResponseError();
+        $this->setJwtTokenInHeader($jwtToken);
+        $this->getJson('/auth/is-authenticated.json');
+        $this->assertResponseOk();
     }
 
     // ====== UTILITIES =========================================================

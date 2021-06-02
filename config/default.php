@@ -56,6 +56,9 @@ return [
                 AuthenticationToken::TYPE_MOBILE_TRANSFER => [
                     'expiry' => filter_var(env('PASSBOLT_AUTH_MOBILE_TRANSFER_TOKEN_EXPIRY', '5 minutes'), FILTER_CALLBACK, ['options' => $authTokenExpiryConfigValidator])
                 ],
+                'jwt' => [
+                    'expiry' => 60, // minutes
+                ],
             ]
         ],
 

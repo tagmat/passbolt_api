@@ -16,7 +16,7 @@ declare(strict_types=1);
  */
 namespace App\Service\JwtAuthentication;
 
-use Cake\Http\Exception\BadRequestException;
+use App\Error\Exception\JWT\JwtKeyPairNotValidException;
 
 abstract class JwtAbstractService
 {
@@ -44,12 +44,15 @@ abstract class JwtAbstractService
 
     /**
      * @return string Content of the secret/private key file
-     * @throws \Cake\Http\Exception\BadRequestException if the file is not found or not readable.
+     * @throws \App\Error\Exception\JWT\JwtKeyPairNotValidException if the file is not found or not readable.
      */
     protected function readKeyFileContent(): string
     {
         if (!is_readable($this->keyPath)) {
-            throw new BadRequestException(__('The public key for JWT Authentication is not set.'));
+            throw new JwtKeyPairNotValidException(__(
+                'The key pair for JWT Authentication is not set. The following file could not be read: {0}.',
+                $this->keyPath
+            ));
         }
 
         return file_get_contents($this->keyPath);

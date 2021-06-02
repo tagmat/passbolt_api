@@ -18,6 +18,7 @@ namespace App\Test\Lib;
 
 use App\Model\Entity\Role;
 use App\Model\Entity\User;
+use App\Service\JwtAuthentication\GetJwtUserTokenSecretService;
 use App\Test\Factory\UserFactory;
 use App\Test\Lib\Model\AvatarsModelTrait;
 use App\Test\Lib\Model\GpgkeysModelTrait;
@@ -139,5 +140,30 @@ abstract class AppIntegrationTestCase extends TestCase
     public function disableCsrfToken()
     {
         $this->_csrfToken = false;
+    }
+
+    /**
+     * Sets the given JWT token in the request header.
+     *
+     * @param string $token
+     * @return void
+     */
+    public function setJwtTokenInHeader(string $token): void
+    {
+        $this->configRequest([
+            'headers' => [GetJwtUserTokenSecretService::HEADER => $token],
+        ]);
+    }
+
+    /**
+     * Creates a JWT token and sets it in the request header.
+     *
+     * @param string $userId
+     * @return void
+     */
+    public function createJwtTokenAndSetInHeader(string $userId): void
+    {
+        $token = (new GetJwtUserTokenSecretService())->getUserToken($userId);
+        $this->setJwtTokenInHeader($token);
     }
 }

@@ -16,7 +16,6 @@ declare(strict_types=1);
  */
 namespace App\Service\JwtAuthentication;
 
-use App\Utility\UserAccessControl;
 use Cake\Core\Configure;
 use Cake\Validation\Validation;
 use Firebase\JWT\JWT;
@@ -26,8 +25,8 @@ class GetJwtUserTokenSecretService extends JwtAbstractService
 {
     public const SECRET_KEY_PATH = CONFIG . '/jwt.key';
     public const ALG = 'RS256';
-    public const EXPIRATION = 60; // TODO: check the unit!!!
     public const HEADER = 'JwtAuthorization';
+    public const USER_TOKEN_KEY = 'jwt_token';
 
     /**
      * @var string
@@ -35,20 +34,23 @@ class GetJwtUserTokenSecretService extends JwtAbstractService
     protected $keyPath = self::SECRET_KEY_PATH;
 
     /**
-     * @param \App\Utility\UserAccessControl $uac The user successfully logging in.
+     * @param string $userId The id of the user successfully logging in.
      * @return string
+     * @throws \InvalidArgumentException if the userId is not a valid Uuid
+     * @throws \App\Error\Exception\JWT\JwtKeyPairNotValidException if the JWT secret key is not readable.
      */
-    public function getUserToken(UserAccessControl $uac): string
+    public function getUserToken(string $userId): string
     {
-        if (!Validation::uuid($uac->getId())) {
+        if (!Validation::uuid($userId)) {
             throw new InvalidArgumentException(__('The resource identifier should be a valid UUID.'));
         }
 
         $privateKey = $this->readKeyFileContent();
+        $expirationDate = time() + Configure::read('auth.token.jwt.expiry', 0) * 60;
         $payload = [
             'iss' => Configure::read('fullBaseUrl'), // TODO: check that this is O.K. for the cloud.
-            'sub' => $uac->getId(),
-            'exp' => time() + self::EXPIRATION,
+            'sub' => $userId,
+            'exp' => $expirationDate,
         ];
 
         return JWT::encode($payload, $privateKey, self::ALG);

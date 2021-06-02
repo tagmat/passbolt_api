@@ -17,7 +17,6 @@ declare(strict_types=1);
 namespace App\Test\TestCase\Controller\Auth;
 
 use App\Service\JwtAuthentication\CreateJwtKeysService;
-use App\Service\JwtAuthentication\GetJwtUserTokenSecretService;
 use App\Test\Factory\UserFactory;
 use App\Test\Lib\AppIntegrationTestCase;
 
@@ -47,13 +46,8 @@ class AuthIsAuthenticatedControllerTest extends AppIntegrationTestCase
 
     public function testIsAuthenticatedWithJwt()
     {
-        $uac = UserFactory::make()->user()->persistedUAC();
-        $token = (new GetJwtUserTokenSecretService())->getUserToken($uac);
-
-        $this->configRequest([
-            'headers' => [GetJwtUserTokenSecretService::HEADER => $token],
-        ]);
-
+        $user = UserFactory::make()->user()->persist();
+        $this->createJwtTokenAndSetInHeader($user->id);
         $this->getJson('/auth/is-authenticated.json');
         $this->assertResponseOk();
         $this->assertTextContains('success', $this->_responseJsonHeader->status);
