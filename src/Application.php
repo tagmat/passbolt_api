@@ -280,10 +280,6 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
             ]);
         }
 
-        // Load the authenticators. Session should be first.
-        $service->loadAuthenticator('Authentication.Session');
-        $service->loadAuthenticator('Gpg');
-
         $jwtPublicKey = null;
         try {
             $jwtPublicKey = (new GetJwksPublicService())->getPublicKey();
@@ -299,6 +295,10 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
                 'returnPayload' => false,
             ]);
         }
+
+        // Load the authenticators. Session should be first.
+        $service->loadAuthenticator('Authentication.Session');
+        $service->loadAuthenticator('Gpg');
 
         return $service;
     }

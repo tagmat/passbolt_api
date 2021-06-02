@@ -46,7 +46,7 @@ class GetJwtUserTokenSecretService extends JwtAbstractService
         }
 
         $privateKey = $this->readKeyFileContent();
-        $expirationDate = time() + Configure::read('auth.token.jwt.expiry', 0) * 60;
+        $expirationDate = time() + Configure::read('passbolt.auth.token.jwt.expiry', 0);
         $payload = [
             'iss' => Configure::read('fullBaseUrl'), // TODO: check that this is O.K. for the cloud.
             'sub' => $userId,
