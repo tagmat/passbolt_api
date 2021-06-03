@@ -17,11 +17,11 @@ declare(strict_types=1);
 
 namespace App\Error\Exception\JWT;
 
-use Cake\Http\Exception\BadRequestException;
+use Authentication\Authenticator\UnauthenticatedException;
 
 /**
- * Exception raised when one of theJ WT key pair in incomplete, of when both do not match.
+ * Exception raised when the refresh key is not associated to the logged in user.
  */
-class JwtKeyPairNotValidException extends BadRequestException
+class InvalidRefreshKeyException extends UnauthenticatedException
 {
 }

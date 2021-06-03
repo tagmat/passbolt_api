@@ -21,7 +21,7 @@ use Cake\Validation\Validation;
 use Firebase\JWT\JWT;
 use InvalidArgumentException;
 
-class GetJwtUserTokenSecretService extends JwtAbstractService
+class CreateJwtUserSecretTokenService extends JwtAbstractService
 {
     public const SECRET_KEY_PATH = CONFIG . '/jwt.key';
     public const ALG = 'RS256';
@@ -37,9 +37,9 @@ class GetJwtUserTokenSecretService extends JwtAbstractService
      * @param string $userId The id of the user successfully logging in.
      * @return string
      * @throws \InvalidArgumentException if the userId is not a valid Uuid
-     * @throws \App\Error\Exception\JWT\JwtKeyPairNotValidException if the JWT secret key is not readable.
+     * @throws \App\Error\Exception\JWT\InvalidJwtKeyPairException if the JWT secret key is not readable.
      */
-    public function getUserToken(string $userId): string
+    public function createToken(string $userId): string
     {
         if (!Validation::uuid($userId)) {
             throw new InvalidArgumentException(__('The resource identifier should be a valid UUID.'));

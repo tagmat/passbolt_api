@@ -16,7 +16,7 @@ declare(strict_types=1);
  */
 namespace App;
 
-use App\Error\Exception\JWT\JwtKeyPairNotValidException;
+use App\Error\Exception\JWT\InvalidJwtKeyPairException;
 use App\Middleware\ContentSecurityPolicyMiddleware;
 use App\Middleware\CsrfProtectionMiddleware;
 use App\Middleware\GpgAuthHeadersMiddleware;
@@ -26,8 +26,9 @@ use App\Notification\Email\Redactor\CoreEmailRedactorPool;
 use App\Notification\EmailDigest\DigestRegister\GroupDigests;
 use App\Notification\EmailDigest\DigestRegister\ResourceDigests;
 use App\Notification\NotificationSettings\CoreNotificationSettingsDefinition;
+use App\Service\JwtAuthentication\CreateJwtUserSecretTokenService;
 use App\Service\JwtAuthentication\GetJwksPublicService;
-use App\Service\JwtAuthentication\GetJwtUserTokenSecretService;
+use App\Service\JwtAuthentication\RefreshTokenCreateService;
 use Authentication\AuthenticationService;
 use Authentication\AuthenticationServiceInterface;
 use Authentication\AuthenticationServiceProviderInterface;
@@ -37,6 +38,7 @@ use Cake\Core\Exception\MissingPluginException;
 use Cake\Error\Middleware\ErrorHandlerMiddleware;
 use Cake\Http\BaseApplication;
 use Cake\Http\Middleware\BodyParserMiddleware;
+use Cake\Http\Middleware\EncryptedCookieMiddleware;
 use Cake\Http\Middleware\SecurityHeadersMiddleware;
 use Cake\Http\MiddlewareQueue;
 use Cake\Routing\Middleware\AssetMiddleware;
@@ -102,6 +104,14 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
                 ->noSniff();
 
             $middlewareQueue->add($headers);
+        }
+
+        $cookieKey = Configure::read('Security.cookieKey');
+        if (is_string($cookieKey)) {
+            $middlewareQueue->add(new EncryptedCookieMiddleware(
+                [RefreshTokenCreateService::REFRESH_TOKEN_COOKIE,],
+                $cookieKey
+            ));
         }
 
         return $middlewareQueue;
@@ -283,15 +293,15 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
         $jwtPublicKey = null;
         try {
             $jwtPublicKey = (new GetJwksPublicService())->getPublicKey();
-        } catch (JwtKeyPairNotValidException $e) {
+        } catch (InvalidJwtKeyPairException $e) {
         }
 
         if ($jwtPublicKey !== null) {
             $service->loadIdentifier('Authentication.JwtSubject');
             $service->loadAuthenticator('Authentication.Jwt', [
-                'header' => GetJwtUserTokenSecretService::HEADER,
+                'header' => CreateJwtUserSecretTokenService::HEADER,
                 'secretKey' => file_get_contents(GetJwksPublicService::PUBLIC_KEY_PATH),
-                'algorithms' => [GetJwtUserTokenSecretService::ALG],
+                'algorithms' => [CreateJwtUserSecretTokenService::ALG],
                 'returnPayload' => false,
             ]);
         }

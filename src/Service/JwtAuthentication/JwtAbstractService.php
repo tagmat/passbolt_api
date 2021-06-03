@@ -16,7 +16,7 @@ declare(strict_types=1);
  */
 namespace App\Service\JwtAuthentication;
 
-use App\Error\Exception\JWT\JwtKeyPairNotValidException;
+use App\Error\Exception\JWT\InvalidJwtKeyPairException;
 
 abstract class JwtAbstractService
 {
@@ -44,12 +44,12 @@ abstract class JwtAbstractService
 
     /**
      * @return string Content of the secret/private key file
-     * @throws \App\Error\Exception\JWT\JwtKeyPairNotValidException if the file is not found or not readable.
+     * @throws \App\Error\Exception\JWT\InvalidJwtKeyPairException if the file is not found or not readable.
      */
     protected function readKeyFileContent(): string
     {
         if (!is_readable($this->keyPath)) {
-            throw new JwtKeyPairNotValidException(__(
+            throw new InvalidJwtKeyPairException(__(
                 'The key pair for JWT Authentication is not set. The following file could not be read: {0}.',
                 $this->keyPath
             ));

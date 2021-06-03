@@ -59,6 +59,7 @@ class AuthenticationTokensTable extends Table
         AuthenticationToken::TYPE_LOGIN,
         AuthenticationToken::TYPE_MFA,
         AuthenticationToken::TYPE_MOBILE_TRANSFER,
+        AuthenticationToken::TYPE_REFRESH_TOKEN,
     ];
 
     /**
@@ -183,7 +184,7 @@ class AuthenticationTokensTable extends Table
      * @throws \App\Error\Exception\ValidationException is the user is deleted
      * @return \App\Model\Entity\AuthenticationToken $token
      */
-    public function generate(string $userId, string $type)
+    public function generate(string $userId, string $type): AuthenticationToken
     {
         $token = $this->newEntity(
             [
@@ -227,7 +228,7 @@ class AuthenticationTokensTable extends Table
      *    Example of valid types: 6 hours, 2 days, 1 minute.
      * @return bool true if it is valid
      */
-    public function isValid(string $tokenId, string $userId, ?string $type = null, $expiry = null)
+    public function isValid(string $tokenId, string $userId, ?string $type = null, $expiry = null): bool
     {
         // Are ids valid uuid?
         if (!Validation::uuid($tokenId) || !Validation::uuid($userId)) {

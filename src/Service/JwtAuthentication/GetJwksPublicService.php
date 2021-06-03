@@ -29,7 +29,7 @@ class GetJwksPublicService extends JwtAbstractService
 
     /**
      * @return string[]
-     * @throws \App\Error\Exception\JWT\JwtKeyPairNotValidException if the public key file is not found or not readable.
+     * @throws \App\Error\Exception\JWT\InvalidJwtKeyPairException if the public key file is not found or not readable.
      */
     public function getPublicKey(): array
     {

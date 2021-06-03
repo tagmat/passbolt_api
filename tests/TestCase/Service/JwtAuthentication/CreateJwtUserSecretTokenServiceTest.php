@@ -17,8 +17,8 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Service\JwtAuthentication;
 
+use App\Service\JwtAuthentication\CreateJwtUserSecretTokenService;
 use App\Service\JwtAuthentication\GetJwksPublicService;
-use App\Service\JwtAuthentication\GetJwtUserTokenSecretService;
 use App\Utility\UuidFactory;
 use Cake\Core\Configure;
 use Cake\TestSuite\TestCase;
@@ -26,9 +26,9 @@ use Firebase\JWT\ExpiredException;
 use Firebase\JWT\JWT;
 
 /**
- * @covers \App\Service\JwtAuthentication\GetJwtUserTokenSecretService
+ * @covers \App\Service\JwtAuthentication\CreateJwtUserSecretTokenService
  */
-class GetJwtUserTokenSecretServiceTest extends TestCase
+class CreateJwtUserSecretTokenServiceTest extends TestCase
 {
     public function tokenExpiration(): array
     {
@@ -41,11 +41,11 @@ class GetJwtUserTokenSecretServiceTest extends TestCase
     /**
      * @dataProvider tokenExpiration
      */
-    public function testGetJwtUserTokenSecretServiceValid(int $expiration, bool $isValid)
+    public function testCreateJwtUserSecretTokenService(int $expiration, bool $isValid)
     {
         Configure::write('passbolt.auth.token.jwt.expiry', $expiration);
         $userId = UuidFactory::uuid();
-        $secretToken = (new GetJwtUserTokenSecretService())->getUserToken($userId);
+        $secretToken = (new CreateJwtUserSecretTokenService())->createToken($userId);
         $publicKey = file_get_contents((new GetJwksPublicService())->getKeyPath());
 
         if (!$isValid) {

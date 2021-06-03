@@ -16,7 +16,7 @@ declare(strict_types=1);
  */
 namespace App\Test\TestCase\Controller\Auth;
 
-use App\Service\JwtAuthentication\GetJwtUserTokenSecretService;
+use App\Service\JwtAuthentication\CreateJwtUserSecretTokenService;
 use App\Test\Lib\AppIntegrationTestCase;
 use App\Utility\OpenPGP\OpenPGPBackendFactory;
 use App\Utility\UuidFactory;
@@ -322,7 +322,7 @@ class AuthLoginControllerTest extends AppIntegrationTestCase
 
         // Check that the JWT token is set.
         /** @var string $jwtToken */
-        $jwtToken = $this->_responseJsonBody->{GetJwtUserTokenSecretService::USER_TOKEN_KEY} ?? null;
+        $jwtToken = $this->_responseJsonBody->{CreateJwtUserSecretTokenService::USER_TOKEN_KEY} ?? null;
         $this->assertIsString($jwtToken);
 
         // Ensure that the JWT Token delivered is valid.

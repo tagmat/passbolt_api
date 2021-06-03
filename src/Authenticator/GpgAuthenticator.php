@@ -16,11 +16,11 @@ declare(strict_types=1);
  */
 namespace App\Authenticator;
 
-use App\Error\Exception\JWT\JwtKeyPairNotValidException;
+use App\Error\Exception\JWT\InvalidJwtKeyPairException;
 use App\Model\Entity\AuthenticationToken;
 use App\Model\Entity\User;
 use App\Model\Table\GpgkeysTable;
-use App\Service\JwtAuthentication\GetJwtUserTokenSecretService;
+use App\Service\JwtAuthentication\CreateJwtUserSecretTokenService;
 use App\Utility\OpenPGP\OpenPGPBackendFactory;
 use Authentication\Authenticator\Result;
 use Authentication\Authenticator\ResultInterface;
@@ -130,9 +130,9 @@ class GpgAuthenticator extends SessionAuthenticator
     private function addJwtTokenPropertyToUser(): void
     {
         try {
-            $jwtToken = (new GetJwtUserTokenSecretService())->getUserToken($this->_user->id);
-            $this->_user->set(GetJwtUserTokenSecretService::USER_TOKEN_KEY, $jwtToken);
-        } catch (JwtKeyPairNotValidException $e) {
+            $jwtToken = (new CreateJwtUserSecretTokenService())->createToken($this->_user->id);
+            $this->_user->set(CreateJwtUserSecretTokenService::USER_TOKEN_KEY, $jwtToken);
+        } catch (InvalidJwtKeyPairException $e) {
         }
     }
 

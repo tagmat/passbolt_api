@@ -70,6 +70,9 @@ Router::scope('/auth', function (RouteBuilder $routes) {
 
     $routes->connect('/jwks', ['prefix' => 'Auth', 'controller' => 'AuthJwks', 'action' => 'index'])
         ->setMethods(['GET']);
+
+    $routes->connect('/refresh-token', ['prefix' => 'Auth', 'controller' => 'AuthRefreshToken', 'action' => 'index'])
+        ->setMethods(['POST']);
 });
 
 /**

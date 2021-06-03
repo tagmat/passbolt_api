@@ -34,7 +34,7 @@ class AuthJwksController extends AppController
     }
 
     /**
-     * Check a user is authenticated
+     * Serve the JWT public key
      *
      * @return void
      */
