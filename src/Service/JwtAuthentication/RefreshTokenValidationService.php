@@ -41,14 +41,14 @@ class RefreshTokenValidationService
     private $userId;
 
     /**
-     * @param ServerRequest $resquest Client request.
+     * @param \Cake\Http\ServerRequest $request Client request.
      * @param string $userId User ID.
      */
-    public function __construct(ServerRequest $resquest, string $userId)
+    public function __construct(ServerRequest $request, string $userId)
     {
         $this->loadModel('AuthenticationTokens');
 
-        $this->request = $resquest;
+        $this->request = $request;
         $this->userId = $userId;
     }
 
