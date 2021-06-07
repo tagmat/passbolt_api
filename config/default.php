@@ -217,6 +217,7 @@ return [
             'csrfProtection' => [
                 'active' => true,
                 'unlockedActions' => [
+                    'AuthJwtLogin' => ['loginPost'],
                     'AuthLogin' => ['loginPost'],
                     'RecoverComplete' => ['complete'],
                     'SetupComplete' => ['complete'],

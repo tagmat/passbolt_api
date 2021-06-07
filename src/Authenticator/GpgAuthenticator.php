@@ -89,7 +89,7 @@ class GpgAuthenticator extends SessionAuthenticator
         if ($request->is('json')) {
             throw new ForbiddenException(__('You need to login to access this location.'));
         }
-        // Otherwise we let the controller handle it
+        // Otherwise we let the controller handle the redirections
     }
 
     /**
@@ -118,7 +118,7 @@ class GpgAuthenticator extends SessionAuthenticator
     {
         $this->addJwtTokenPropertyToUser();
 
-        return new Result($this->_user->toArray(), Result::SUCCESS, $this->headers);
+        return new Result(['user' => $this->_user->toArray()], Result::SUCCESS, $this->headers);
     }
 
     /**

@@ -37,24 +37,28 @@ class RefreshTokenCreateService
     /**
      * @param string $userId User ID.
      */
-    public function __construct(string $userId)
+    public function __construct()
     {
         $this->loadModel('AuthenticationTokens');
-
-        $this->userId = $userId;
     }
 
     /**
-     * @return \Cake\Http\Cookie\Cookie
+     * @param string $userId user uuid
+     * @return AuthenticationToken
      */
-    public function create(): Cookie
+    public function createToken(string $userId): AuthenticationToken
     {
-        $this->deleteAll();
+        return $this->AuthenticationTokens->generate($userId, AuthenticationToken::TYPE_REFRESH_TOKEN);
+    }
 
-        $token = $this->AuthenticationTokens->generate($this->userId, AuthenticationToken::TYPE_REFRESH_TOKEN);
-
+    /**
+     * @param AuthenticationToken $token
+     * @return Cookie|\Cake\Http\Cookie\CookieInterface
+     */
+    public function createCookie(AuthenticationToken $token) {
         $cookie = new Cookie(self::REFRESH_TOKEN_COOKIE, $token->token);
 
+        // TODO set expiry date based on token expiry
         return $cookie
             ->withSecure(true)
             ->withHttpOnly(true);
@@ -63,12 +67,13 @@ class RefreshTokenCreateService
     /**
      * Delete all refresh tokens associated to the user.
      *
+     * @param string $userId user uuid
      * @return void
      */
-    private function deleteAll(): void
+    private function deleteAll(string $userId): void
     {
         $this->AuthenticationTokens->deleteAll([
-            'user_id' => $this->userId,
+            'user_id' => $userId,
             'type' => AuthenticationToken::TYPE_REFRESH_TOKEN,
         ]);
     }

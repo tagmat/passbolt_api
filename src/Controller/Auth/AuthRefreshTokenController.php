@@ -32,13 +32,17 @@ class AuthRefreshTokenController extends AppController
      */
     public function index(): Response
     {
-        (new RefreshTokenValidationService($this->getRequest(), $this->User->id()))->validate();
+        $userId = $this->User->id();
+        (new RefreshTokenValidationService($this->getRequest(), $userId))->validate();
 
-        $refreshHttpOnlySecureCookie = (new RefreshTokenCreateService($this->User->id()))->create();
-        $jwtToken = (new CreateJwtUserSecretTokenService())->createToken($this->User->id());
+        $refreshTokenCreateService = new RefreshTokenCreateService();
+        $refreshToken = $refreshTokenCreateService->createToken($userId);
+        $refreshCookie = $refreshTokenCreateService->createCookie($refreshToken);
+        $jwtToken = (new CreateJwtUserSecretTokenService())->createToken($userId);
 
         $this->success(__('The operation was successful.'), $jwtToken);
 
-        return $this->getResponse()->withCookie($refreshHttpOnlySecureCookie);
+        return $this->getResponse()
+            ->withCookie($refreshCookie);
     }
 }
