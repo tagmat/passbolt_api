@@ -164,9 +164,9 @@ class RefreshTokenRenewalService
     /**
      * Get the pepper string used to encrypt the cookie.
      *
-     * @return string
+     * @return string|null
      */
-    public static function getPepper(): string
+    public static function getPepper(): ?string
     {
         return Configure::read('passbolt.gpg.serverKey.fingerprint');
     }

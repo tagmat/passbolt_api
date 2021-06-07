@@ -106,11 +106,11 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
             $middlewareQueue->add($headers);
         }
 
-        $cookieSalt = RefreshTokenRenewalService::getPepper();
-        if (is_string($cookieSalt)) {
+        $cookiePepper = RefreshTokenRenewalService::getPepper();
+        if (is_string($cookiePepper)) {
             $middlewareQueue->add(new EncryptedCookieMiddleware(
                 [RefreshTokenRenewalService::REFRESH_TOKEN_COOKIE,],
-                $cookieSalt
+                $cookiePepper
             ));
         }
 
