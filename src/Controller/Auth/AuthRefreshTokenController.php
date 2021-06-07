@@ -18,27 +18,30 @@ declare(strict_types=1);
 namespace App\Controller\Auth;
 
 use App\Controller\AppController;
-use App\Service\JwtAuthentication\CreateJwtUserSecretTokenService;
-use App\Service\JwtAuthentication\RefreshTokenCreateService;
-use App\Service\JwtAuthentication\RefreshTokenValidationService;
-use Cake\Http\Response;
+use App\Service\JwtAuthentication\JwtTokenCreateService;
+use App\Service\JwtAuthentication\RefreshTokenRenewalService;
 
 class AuthRefreshTokenController extends AppController
 {
     /**
      * Serve a refresh token and a new JWT token.
      *
-     * @return \Cake\Http\Response
+     * @return void
+     * @throws \Cake\Http\Exception\BadRequestException if the refresh token is not set in the request.
+     * @throws \App\Error\Exception\JWT\InvalidRefreshKeyException if the refresh token is not valid.
      */
-    public function index(): Response
+    public function index()
     {
-        (new RefreshTokenValidationService($this->getRequest(), $this->User->id()))->validate();
+        $refreshHttpOnlySecureCookie = (new RefreshTokenRenewalService(
+            $this->User->id(),
+            $this->getRequest()
+        ))->renew();
+        $jwtToken = (new JwtTokenCreateService())->createToken($this->User->id());
 
-        $refreshHttpOnlySecureCookie = (new RefreshTokenCreateService($this->User->id()))->create();
-        $jwtToken = (new CreateJwtUserSecretTokenService())->createToken($this->User->id());
+        $this->setResponse(
+            $this->getResponse()->withCookie($refreshHttpOnlySecureCookie)
+        );
 
         $this->success(__('The operation was successful.'), $jwtToken);
-
-        return $this->getResponse()->withCookie($refreshHttpOnlySecureCookie);
     }
 }

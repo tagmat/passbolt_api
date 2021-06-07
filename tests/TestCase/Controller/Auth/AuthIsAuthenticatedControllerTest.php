@@ -16,7 +16,7 @@ declare(strict_types=1);
  */
 namespace App\Test\TestCase\Controller\Auth;
 
-use App\Service\JwtAuthentication\CreateJwtKeysService;
+use App\Service\JwtAuthentication\JwtKeyPairCreateService;
 use App\Test\Factory\UserFactory;
 use App\Test\Lib\AppIntegrationTestCase;
 
@@ -25,7 +25,7 @@ class AuthIsAuthenticatedControllerTest extends AppIntegrationTestCase
     public function setUp(): void
     {
         parent::setUp();
-        (new CreateJwtKeysService())->createKeyPair();
+        (new JwtKeyPairCreateService())->createKeyPair();
     }
 
     public function testIsAuthenticatedNotLoggedIn()
@@ -51,5 +51,21 @@ class AuthIsAuthenticatedControllerTest extends AppIntegrationTestCase
         $this->getJson('/auth/is-authenticated.json');
         $this->assertResponseOk();
         $this->assertTextContains('success', $this->_responseJsonHeader->status);
+    }
+
+    public function testIsAuthenticatedWithJwtWithOnActiveUser()
+    {
+        $user = UserFactory::make()->user()->inactive()->persist();
+        $this->createJwtTokenAndSetInHeader($user->id);
+        $this->getJson('/auth/is-authenticated.json');
+        $this->assertResponseError();
+    }
+
+    public function testIsAuthenticatedWithJwtWithOnDeletedUser()
+    {
+        $user = UserFactory::make()->user()->deleted()->persist();
+        $this->createJwtTokenAndSetInHeader($user->id);
+        $this->getJson('/auth/is-authenticated.json');
+        $this->assertResponseError();
     }
 }

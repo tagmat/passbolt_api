@@ -16,7 +16,7 @@ declare(strict_types=1);
  */
 namespace App\Command;
 
-use App\Service\JwtAuthentication\CreateJwtKeysService;
+use App\Service\JwtAuthentication\JwtKeyPairCreateService;
 use Cake\Console\Arguments;
 use Cake\Console\ConsoleIo;
 use Cake\Console\ConsoleOptionParser;
@@ -49,7 +49,7 @@ class JwtSetupCommand extends PassboltCommand
 
         $force = $args->getOption('force');
 
-        $service = new CreateJwtKeysService();
+        $service = new JwtKeyPairCreateService();
         $result = $service->createKeyPair($force);
 
         // TODO: we might want to provide more information here.

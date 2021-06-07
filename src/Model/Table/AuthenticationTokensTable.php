@@ -282,17 +282,17 @@ class AuthenticationTokensTable extends Table
     /**
      * Set a token as inactive
      *
-     * @param string $tokenId uuid
-     * @throws \InvalidArgumentException is the token is not a valid uuid
+     * @param string $tokenValue uuid
      * @return bool save result
+     * @throws \InvalidArgumentException is the token is not a valid uuid
      */
-    public function setInactive(string $tokenId): bool
+    public function setInactive(string $tokenValue): bool
     {
-        if (!Validation::uuid($tokenId)) {
+        if (!Validation::uuid($tokenValue)) {
             throw new \InvalidArgumentException('The token should be a valid UUID.');
         }
         $token = $this->find('all')
-            ->where(['token' => $tokenId, 'active' => true ])
+            ->where(['token' => $tokenValue, 'active' => true ])
             ->first();
 
         if (empty($token)) {

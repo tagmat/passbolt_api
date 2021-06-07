@@ -18,7 +18,7 @@ namespace App\Test\Lib;
 
 use App\Model\Entity\Role;
 use App\Model\Entity\User;
-use App\Service\JwtAuthentication\CreateJwtUserSecretTokenService;
+use App\Service\JwtAuthentication\JwtTokenCreateService;
 use App\Test\Factory\UserFactory;
 use App\Test\Lib\Model\AvatarsModelTrait;
 use App\Test\Lib\Model\GpgkeysModelTrait;
@@ -63,6 +63,7 @@ abstract class AppIntegrationTestCase extends TestCase
         parent::setUp();
         $this->enableCsrfToken();
         $this->loadRoutes();
+        $this->cleanup();
         Configure::write('passbolt.plugins.log.enabled', false);
     }
 
@@ -151,7 +152,7 @@ abstract class AppIntegrationTestCase extends TestCase
     public function setJwtTokenInHeader(string $token): void
     {
         $this->configRequest([
-            'headers' => [CreateJwtUserSecretTokenService::HEADER => $token],
+            'headers' => [JwtTokenCreateService::HEADER => $token],
         ]);
     }
 
@@ -163,7 +164,7 @@ abstract class AppIntegrationTestCase extends TestCase
      */
     public function createJwtTokenAndSetInHeader(string $userId): void
     {
-        $token = (new CreateJwtUserSecretTokenService())->createToken($userId);
+        $token = (new JwtTokenCreateService())->createToken($userId);
         $this->setJwtTokenInHeader($token);
     }
 }

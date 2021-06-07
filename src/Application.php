@@ -26,9 +26,9 @@ use App\Notification\Email\Redactor\CoreEmailRedactorPool;
 use App\Notification\EmailDigest\DigestRegister\GroupDigests;
 use App\Notification\EmailDigest\DigestRegister\ResourceDigests;
 use App\Notification\NotificationSettings\CoreNotificationSettingsDefinition;
-use App\Service\JwtAuthentication\CreateJwtUserSecretTokenService;
-use App\Service\JwtAuthentication\GetJwksPublicService;
-use App\Service\JwtAuthentication\RefreshTokenCreateService;
+use App\Service\JwtAuthentication\JwksPublicCreateService;
+use App\Service\JwtAuthentication\JwtTokenCreateService;
+use App\Service\JwtAuthentication\RefreshTokenRenewalService;
 use Authentication\AuthenticationService;
 use Authentication\AuthenticationServiceInterface;
 use Authentication\AuthenticationServiceProviderInterface;
@@ -106,11 +106,11 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
             $middlewareQueue->add($headers);
         }
 
-        $cookieKey = Configure::read('Security.cookieKey');
-        if (is_string($cookieKey)) {
+        $cookieSalt = RefreshTokenRenewalService::getPepper();
+        if (is_string($cookieSalt)) {
             $middlewareQueue->add(new EncryptedCookieMiddleware(
-                [RefreshTokenCreateService::REFRESH_TOKEN_COOKIE,],
-                $cookieKey
+                [RefreshTokenRenewalService::REFRESH_TOKEN_COOKIE,],
+                $cookieSalt
             ));
         }
 
@@ -292,16 +292,21 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
 
         $jwtPublicKey = null;
         try {
-            $jwtPublicKey = (new GetJwksPublicService())->getPublicKey();
+            $jwtPublicKey = (new JwksPublicCreateService())->getPublicKey();
         } catch (InvalidJwtKeyPairException $e) {
         }
 
         if ($jwtPublicKey !== null) {
-            $service->loadIdentifier('Authentication.JwtSubject');
+            $service->loadIdentifier('Authentication.JwtSubject', [
+                'resolver' => [
+                    'className' => 'Authentication.Orm',
+                    'finder' => 'activeNotDeleted',
+                ],
+            ]);
             $service->loadAuthenticator('Authentication.Jwt', [
-                'header' => CreateJwtUserSecretTokenService::HEADER,
-                'secretKey' => file_get_contents(GetJwksPublicService::PUBLIC_KEY_PATH),
-                'algorithms' => [CreateJwtUserSecretTokenService::ALG],
+                'header' => JwtTokenCreateService::HEADER,
+                'secretKey' => file_get_contents(JwksPublicCreateService::PUBLIC_KEY_PATH),
+                'algorithms' => [JwtTokenCreateService::ALG],
                 'returnPayload' => false,
             ]);
         }

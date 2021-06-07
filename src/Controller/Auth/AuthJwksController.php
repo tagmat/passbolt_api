@@ -18,7 +18,7 @@ declare(strict_types=1);
 namespace App\Controller\Auth;
 
 use App\Controller\AppController;
-use App\Service\JwtAuthentication\GetJwksPublicService;
+use App\Service\JwtAuthentication\JwksPublicCreateService;
 use Cake\Event\EventInterface;
 
 class AuthJwksController extends AppController
@@ -40,7 +40,7 @@ class AuthJwksController extends AppController
      */
     public function index()
     {
-        $keys['keys'][] = (new GetJwksPublicService())->getPublicKey();
+        $keys['keys'][] = (new JwksPublicCreateService())->getPublicKey();
 
         $this->success(__('The operation was successful.'), $keys);
     }

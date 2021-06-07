@@ -27,12 +27,12 @@ class RefreshTokenCreateService
 {
     use ModelAwareTrait;
 
-    public const REFRESH_TOKEN_COOKIE = 'refresh_token';
+    public const USER_REFRESH_KEY = 'refresh_token';
 
     /**
      * @var string
      */
-    private $userId;
+    protected $userId;
 
     /**
      * @param string $userId User ID.
@@ -40,36 +40,24 @@ class RefreshTokenCreateService
     public function __construct(string $userId)
     {
         $this->loadModel('AuthenticationTokens');
-
         $this->userId = $userId;
     }
 
     /**
+     * Persist an authentication token and return a secure Cookie
+     * to be attached to the response.
+     *
      * @return \Cake\Http\Cookie\Cookie
      */
     public function create(): Cookie
     {
-        $this->deleteAll();
+        $token = $this->AuthenticationTokens->generate(
+            $this->userId,
+            AuthenticationToken::TYPE_REFRESH_TOKEN
+        )->token;
 
-        $token = $this->AuthenticationTokens->generate($this->userId, AuthenticationToken::TYPE_REFRESH_TOKEN);
+        $cookie = new Cookie(RefreshTokenRenewalService::REFRESH_TOKEN_COOKIE, $token);
 
-        $cookie = new Cookie(self::REFRESH_TOKEN_COOKIE, $token->token);
-
-        return $cookie
-            ->withSecure(true)
-            ->withHttpOnly(true);
-    }
-
-    /**
-     * Delete all refresh tokens associated to the user.
-     *
-     * @return void
-     */
-    private function deleteAll(): void
-    {
-        $this->AuthenticationTokens->deleteAll([
-            'user_id' => $this->userId,
-            'type' => AuthenticationToken::TYPE_REFRESH_TOKEN,
-        ]);
+        return $cookie->withSecure(true)->withHttpOnly(true);
     }
 }

@@ -118,4 +118,13 @@ class AuthenticationTokenFactory extends CakephpBaseFactory
     {
         return $this->patchData(['active' => true]);
     }
+
+    /**
+     * @param string $userId user ID
+     * @return $this
+     */
+    public function userId(string $userId)
+    {
+        return $this->patchData(['user_id' => $userId]);
+    }
 }

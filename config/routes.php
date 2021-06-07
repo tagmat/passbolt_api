@@ -72,7 +72,7 @@ Router::scope('/auth', function (RouteBuilder $routes) {
         ->setMethods(['GET']);
 
     $routes->connect('/refresh-token', ['prefix' => 'Auth', 'controller' => 'AuthRefreshToken', 'action' => 'index'])
-        ->setMethods(['POST']);
+        ->setMethods(['GET']);
 });
 
 /**

@@ -16,7 +16,7 @@ declare(strict_types=1);
  */
 namespace App\Service\JwtAuthentication;
 
-class CreateJwtKeysService
+class JwtKeyPairCreateService
 {
     protected $secretService;
 
@@ -25,15 +25,15 @@ class CreateJwtKeysService
     /**
      * CreateJwtKeysService constructor.
      *
-     * @param \App\Service\JwtAuthentication\CreateJwtUserSecretTokenService|null $secretService JWT Secret Service
-     * @param \App\Service\JwtAuthentication\GetJwksPublicService|null $publicService JWT Public Service
+     * @param \App\Service\JwtAuthentication\JwtTokenCreateService|null $secretService JWT Secret Service
+     * @param \App\Service\JwtAuthentication\JwksPublicCreateService|null $publicService JWT Public Service
      */
     public function __construct(
-        ?CreateJwtUserSecretTokenService $secretService = null,
-        ?GetJwksPublicService $publicService = null
+        ?JwtTokenCreateService $secretService = null,
+        ?JwksPublicCreateService $publicService = null
     ) {
-        $this->secretService = $secretService ?? new CreateJwtUserSecretTokenService();
-        $this->publicService = $publicService ?? new GetJwksPublicService();
+        $this->secretService = $secretService ?? new JwtTokenCreateService();
+        $this->publicService = $publicService ?? new JwksPublicCreateService();
     }
 
     /**

@@ -21,12 +21,12 @@ use Cake\Validation\Validation;
 use Firebase\JWT\JWT;
 use InvalidArgumentException;
 
-class CreateJwtUserSecretTokenService extends JwtAbstractService
+class JwtTokenCreateService extends JwtAbstractService
 {
     public const SECRET_KEY_PATH = CONFIG . '/jwt.key';
     public const ALG = 'RS256';
     public const HEADER = 'JwtAuthorization';
-    public const USER_TOKEN_KEY = 'jwt_token';
+    public const USER_JWT_KEY = 'jwt_token';
 
     /**
      * @var string

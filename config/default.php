@@ -60,7 +60,7 @@ return [
                     'expiry' => filter_var(env('PASSBOLT_AUTH_JWT_REFRESH_TOKEN', '1 month'), FILTER_CALLBACK, ['options' => $authTokenExpiryConfigValidator])
                 ],
                 'jwt' => [
-                    'expiry' => 3600, // seconds
+                    'expiry' => 300, // seconds
                 ],
             ]
         ],

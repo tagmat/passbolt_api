@@ -565,4 +565,18 @@ trait UsersFindersTrait
 
         return $query;
     }
+
+    /**
+     * Active and non deleted users only.
+     *
+     * @param \Cake\ORM\Query $query Query to carve.
+     * @return \Cake\ORM\Query
+     */
+    public function findActiveNotDeleted(Query $query): Query
+    {
+        return $query->where([
+           $this->aliasField('active') => true,
+           $this->aliasField('deleted') => false,
+        ]);
+    }
 }
