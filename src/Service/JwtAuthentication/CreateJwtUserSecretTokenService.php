@@ -25,7 +25,7 @@ class CreateJwtUserSecretTokenService extends JwtAbstractService
 {
     public const SECRET_KEY_PATH = CONFIG . '/jwt.key';
     public const ALG = 'RS256';
-    public const HEADER = 'JwtAuthorization';
+    public const HEADER = 'Authorization';
     public const USER_TOKEN_KEY = 'jwt_token';
 
     /**

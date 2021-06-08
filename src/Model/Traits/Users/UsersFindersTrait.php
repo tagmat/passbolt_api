@@ -199,7 +199,7 @@ trait UsersFindersTrait
      * Build the query that fetches data for user index
      *
      * @param string $role name
-     * @param array|null $options filters
+     * @param array $options filters
      * @throws \InvalidArgumentException if no role is specified
      * @return \Cake\ORM\Query
      */

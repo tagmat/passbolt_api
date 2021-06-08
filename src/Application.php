@@ -16,7 +16,6 @@ declare(strict_types=1);
  */
 namespace App;
 
-use App\Error\Exception\JWT\InvalidJwtKeyPairException;
 use App\Middleware\ContentSecurityPolicyMiddleware;
 use App\Middleware\CsrfProtectionMiddleware;
 use App\Middleware\GpgAuthHeadersMiddleware;
@@ -44,7 +43,6 @@ use Cake\Http\Middleware\SecurityHeadersMiddleware;
 use Cake\Http\MiddlewareQueue;
 use Cake\Routing\Middleware\AssetMiddleware;
 use Cake\Routing\Middleware\RoutingMiddleware;
-use Cake\Utility\Hash;
 use Passbolt\WebInstaller\Middleware\WebInstallerMiddleware;
 use Psr\Http\Message\ServerRequestInterface;
 

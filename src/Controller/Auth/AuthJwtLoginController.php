@@ -18,7 +18,6 @@ namespace App\Controller\Auth;
 
 use App\Controller\AppController;
 use Authentication\Authenticator\Result;
-use Authentication\Authenticator\ResultInterface;
 use Cake\Http\Exception\BadRequestException;
 use Cake\Http\Exception\InternalErrorException;
 use Cake\Http\Exception\NotFoundException;
@@ -44,7 +43,6 @@ class AuthJwtLoginController extends AppController
      */
     public function loginPost()
     {
-
         if (!$this->request->is('json')) {
             throw new BadRequestException(__('This is not a valid Ajax/Json request.'));
         }

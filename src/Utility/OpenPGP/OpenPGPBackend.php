@@ -49,7 +49,7 @@ abstract class OpenPGPBackend implements OpenPGPBackendInterface
      * @throws \Cake\Http\Exception\InternalErrorException if server key is undefined or invalid
      * @return void
      */
-    public function importServerKeyInKeyring()
+    public function importServerKeyInKeyring(): void
     {
         $fingerprint = Configure::read('passbolt.gpg.serverKey.fingerprint');
         $keyFilePath = Configure::read('passbolt.gpg.serverKey.private');

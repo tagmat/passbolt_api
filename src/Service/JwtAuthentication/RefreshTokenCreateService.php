@@ -30,12 +30,7 @@ class RefreshTokenCreateService
     public const REFRESH_TOKEN_COOKIE = 'refresh_token';
 
     /**
-     * @var string
-     */
-    private $userId;
-
-    /**
-     * @param string $userId User ID.
+     * RefreshTokenCreateService constructor.
      */
     public function __construct()
     {
@@ -44,7 +39,7 @@ class RefreshTokenCreateService
 
     /**
      * @param string $userId user uuid
-     * @return AuthenticationToken
+     * @return \App\Model\Entity\AuthenticationToken
      */
     public function createToken(string $userId): AuthenticationToken
     {
@@ -52,10 +47,11 @@ class RefreshTokenCreateService
     }
 
     /**
-     * @param AuthenticationToken $token
-     * @return Cookie|\Cake\Http\Cookie\CookieInterface
+     * @param \App\Model\Entity\AuthenticationToken $token token
+     * @return \Cake\Http\Cookie\Cookie|\Cake\Http\Cookie\CookieInterface
      */
-    public function createCookie(AuthenticationToken $token) {
+    public function createCookie(AuthenticationToken $token)
+    {
         $cookie = new Cookie(self::REFRESH_TOKEN_COOKIE, $token->token);
 
         // TODO set expiry date based on token expiry

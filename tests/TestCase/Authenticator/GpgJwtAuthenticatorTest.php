@@ -17,9 +17,11 @@ declare(strict_types=1);
 namespace App\Test\TestCase\Authenticator;
 
 use App\Authenticator\GpgJwtAuthenticator;
+use App\Utility\OpenPGP\OpenPGPBackendFactory;
 use App\Utility\UuidFactory;
 use Authentication\Authenticator\Result;
 use Authentication\Identifier\TokenIdentifier;
+use Cake\Core\Configure;
 use Cake\Http\Exception\BadRequestException;
 use Cake\Http\Exception\InternalErrorException;
 use Cake\Http\ServerRequest;
@@ -29,7 +31,18 @@ use Cake\Utility\Security;
 
 class GpgJwtAuthenticatorTest extends TestCase
 {
-    /** @var GpgJwtAuthenticator $sut */
+    public $fixtures = [
+        'app.Base/Users', 'app.Base/Roles', 'app.Base/Profiles', 'app.Base/Gpgkeys',
+    ];
+
+    /**
+     * @var OpenPGPBackend $gpg
+     */
+    protected $gpg;
+
+    // Keys ids used in this test. Set in _gpgSetup.
+    protected $adaKeyId;
+    protected $serverKeyId;
     protected $sut;
 
     public function setUp(): void
@@ -38,21 +51,253 @@ class GpgJwtAuthenticatorTest extends TestCase
         $this->sut = new GpgJwtAuthenticator(new TokenIdentifier());
     }
 
+    /**
+     * Setup GPG and import the keys to be used in the tests
+     *
+     * @param string $name ada by default
+     */
+    protected function gpgSetup()
+    {
+        // Make sure the keys are in the keyring
+        // if needed we add them for later use in the tests
+        if (Configure::read('passbolt.gpg.putenv')) {
+            putenv('GNUPGHOME=' . Configure::read('passbolt.gpg.keyring'));
+        }
+
+        $this->gpg = OpenPGPBackendFactory::get();
+        $this->gpg->clearKeys();
+
+        // Import the server key.
+        $this->serverKeyId = $this->gpg->importKeyIntoKeyring(file_get_contents(Configure::read('passbolt.gpg.serverKey.private')));
+        $this->gpg->importKeyIntoKeyring(file_get_contents(Configure::read('passbolt.gpg.serverKey.public')));
+
+        // Import the key of ada.
+        $this->adaKeyId = $this->gpg->importKeyIntoKeyring(file_get_contents(FIXTURES . DS . 'Gpgkeys' . DS . 'ada_private_nopassphrase.key'));
+    }
 
     public function testGpgJwtAuthenticatorAuthenticateError_NoData()
     {
+        $this->gpgSetup();
         $request = new ServerRequest();
         $authenticator = new GpgJwtAuthenticator(new TokenIdentifier());
-//        $request = $request->withAttribute('params', ['controller' => 'AuthLoginController', 'action' => 'loginGet']);
-        $result = $authenticator->authenticate($request);
-        $this->assertEquals($result->getStatus(), Result::FAILURE_CREDENTIALS_MISSING);
+
+        $result = $this->sut->authenticate($request);
+        $this->assertEquals($result->getStatus(), Result::FAILURE_CREDENTIALS_INVALID);
     }
 
+    public function testGpgJwtAuthenticatorAuthenticateError_InvalidUserId()
+    {
+        $this->gpgSetup();
+        $request = new ServerRequest();
+        $request = $request->withData('user_id', 'nope');
+        $result = $this->sut->authenticate($request);
+        $this->assertEquals($result->getStatus(), Result::FAILURE_CREDENTIALS_INVALID);
+    }
+
+    public function testGpgJwtAuthenticatorAuthenticateError_NotFoundUser()
+    {
+        $this->gpgSetup();
+        $request = new ServerRequest();
+        $request = $request->withData('user_id', UuidFactory::uuid());
+        $result = $this->sut->authenticate($request);
+        $this->assertEquals($result->getStatus(), Result::FAILURE_IDENTITY_NOT_FOUND);
+    }
+
+    public function testGpgJwtAuthenticatorAuthenticateError_NoChallenge()
+    {
+        $this->gpgSetup();
+        $request = new ServerRequest();
+        $request = $request->withData('user_id', UuidFactory::uuid('user.id.ada'));
+        $result = $this->sut->authenticate($request);
+        $this->assertEquals($result->getStatus(), Result::FAILURE_CREDENTIALS_INVALID);
+    }
+
+    public function testGpgJwtAuthenticatorAuthenticateError_NotOpenPGPChallenge()
+    {
+        $this->gpgSetup();
+        $request = new ServerRequest();
+
+        $request = $request->withData('user_id', UuidFactory::uuid('user.id.ada'));
+        $request = $request->withData('challenge', 'nope');
+        $result = $this->sut->authenticate($request);
+
+        $this->assertEquals($result->getStatus(), Result::FAILURE_CREDENTIALS_INVALID);
+    }
+
+    public function testGpgJwtAuthenticatorAuthenticateError_WrongSignatureChallenge()
+    {
+        $this->gpgSetup();
+        $request = new ServerRequest();
+
+        $this->gpg->setEncryptKeyFromFingerprint($this->serverKeyId);
+        $this->gpg->setSignKeyFromFingerprint($this->adaKeyId, '');
+        $msg = $this->gpg->encrypt('no sig');
+
+        $request = $request->withData('user_id', UuidFactory::uuid('user.id.ada'));
+        $request = $request->withData('challenge', $msg);
+        $result = $this->sut->authenticate($request);
+
+        $this->assertEquals($result->getStatus(), Result::FAILURE_CREDENTIALS_INVALID);
+    }
+
+    public function testGpgJwtAuthenticatorAuthenticateError_WrongChallengeFormat()
+    {
+        $this->gpgSetup();
+        $request = new ServerRequest();
+
+        $this->gpg->setEncryptKeyFromFingerprint($this->serverKeyId);
+        $this->gpg->setSignKeyFromFingerprint($this->adaKeyId, '');
+        $msg = $this->gpg->encryptSign('wrong format');
+
+        $request = $request->withData('user_id', UuidFactory::uuid('user.id.ada'));
+        $request = $request->withData('challenge', $msg);
+        $result = $this->sut->authenticate($request);
+
+        $this->assertEquals($result->getStatus(), Result::FAILURE_CREDENTIALS_INVALID);
+    }
+
+    public function testGpgJwtAuthenticatorAuthenticateError_WrongVersion()
+    {
+        $this->gpgSetup();
+        $request = new ServerRequest();
+
+        $this->gpg->setEncryptKeyFromFingerprint($this->serverKeyId);
+        $this->gpg->setSignKeyFromFingerprint($this->adaKeyId, '');
+        $challenge = [
+            'version' => '2.0.0',
+            'domain' => Router::url('/', true),
+            'verify_token' => Security::hash('test', 'sha256'),
+            'verify_token_expiry' => time() + 60,
+        ];
+        $msg = $this->gpg->encryptSign(json_encode($challenge));
+
+        $request = $request->withData('user_id', UuidFactory::uuid('user.id.ada'));
+        $request = $request->withData('challenge', $msg);
+        $result = $this->sut->authenticate($request);
+
+        $this->assertEquals($result->getStatus(), Result::FAILURE_CREDENTIALS_INVALID);
+    }
+
+    public function testGpgJwtAuthenticatorAuthenticateError_WrongDomain()
+    {
+        $this->gpgSetup();
+        $request = new ServerRequest();
+
+        $this->gpg->setEncryptKeyFromFingerprint($this->serverKeyId);
+        $this->gpg->setSignKeyFromFingerprint($this->adaKeyId, '');
+        $challenge = [
+            'version' => '1.0.0',
+            'domain' => 'https://cloud.passbolt.com/test',
+            'verify_token' => Security::hash('test', 'sha256'),
+            'verify_token_expiry' => time() + 60,
+        ];
+        $msg = $this->gpg->encryptSign(json_encode($challenge));
+
+        $request = $request->withData('user_id', UuidFactory::uuid('user.id.ada'));
+        $request = $request->withData('challenge', $msg);
+        $result = $this->sut->authenticate($request);
+
+        $this->assertEquals($result->getStatus(), Result::FAILURE_CREDENTIALS_INVALID);
+    }
+
+    public function testGpgJwtAuthenticatorAuthenticateError_ExpiredToken()
+    {
+        $this->gpgSetup();
+        $request = new ServerRequest();
+
+        $this->gpg->setEncryptKeyFromFingerprint($this->serverKeyId);
+        $this->gpg->setSignKeyFromFingerprint($this->adaKeyId, '');
+        $challenge = [
+            'version' => '1.0.0',
+            'domain' => Router::url('/', true),
+            'verify_token' => Security::hash('test', 'sha256'),
+            'verify_token_expiry' => time() - 60,
+        ];
+        $msg = $this->gpg->encryptSign(json_encode($challenge));
+
+        $request = $request->withData('user_id', UuidFactory::uuid('user.id.ada'));
+        $request = $request->withData('challenge', $msg);
+        $result = $this->sut->authenticate($request);
+
+        $this->assertEquals($result->getStatus(), Result::FAILURE_CREDENTIALS_INVALID);
+    }
+
+    public function testGpgJwtAuthenticatorAuthenticateError_WrongVerifyToken()
+    {
+        $this->gpgSetup();
+        $request = new ServerRequest();
+
+        $this->gpg->setEncryptKeyFromFingerprint($this->serverKeyId);
+        $this->gpg->setSignKeyFromFingerprint($this->adaKeyId, '');
+        $challenge = [
+            'version' => '1.0.0',
+            'domain' => Router::url('/', true),
+            'verify_token' => Security::hash('test', 'sha512'),
+            'verify_token_expiry' => time() + 60,
+        ];
+        $msg = $this->gpg->encryptSign(json_encode($challenge));
+
+        $request = $request->withData('user_id', UuidFactory::uuid('user.id.ada'));
+        $request = $request->withData('challenge', $msg);
+        $result = $this->sut->authenticate($request);
+
+        $this->assertEquals($result->getStatus(), Result::FAILURE_CREDENTIALS_INVALID);
+    }
+
+    public function testGpgJwtAuthenticatorAuthenticateSuccess()
+    {
+        $this->gpgSetup();
+        $request = new ServerRequest();
+
+        $this->gpg->setEncryptKeyFromFingerprint($this->serverKeyId);
+        $this->gpg->setSignKeyFromFingerprint($this->adaKeyId, '');
+        $userChallenge = [
+            'version' => '1.0.0',
+            'domain' => Router::url('/', true),
+            'verify_token' => Security::hash('test', 'sha256'),
+            'verify_token_expiry' => time() + 60,
+        ];
+        $msg = $this->gpg->encryptSign(json_encode($userChallenge));
+
+        $request = $request->withData('user_id', UuidFactory::uuid('user.id.ada'));
+        $request = $request->withData('challenge', $msg);
+        $result = $this->sut->authenticate($request);
+
+        $this->assertEquals(Result::SUCCESS, $result->getStatus());
+        $data = $result->getData();
+        $this->assertNotEmpty($data['user']);
+        $this->assertNotEmpty($data['challenge']);
+
+        // Assert user is part of results
+        $user = $data['user'];
+        $this->assertEquals(UuidFactory::uuid('user.id.ada'), $user['id']);
+        $this->assertEquals('ada@passbolt.com', $user['username']);
+        $this->assertEquals('Lovelace', $user['profile']['last_name']);
+        $this->assertEquals('03F60E958F4CB29723ACDF761353B5B15D9B054F', $user['gpgkey']['fingerprint']);
+
+        // Assert challenge is signed and can be decrypted
+        $serverChallenge = $data['challenge'];
+        $this->gpg->clearDecryptKeys();
+        $this->gpg->setVerifyKeyFromFingerprint(Configure::read('passbolt.gpg.serverKey.fingerprint'));
+        $this->gpg->verify($serverChallenge);
+        $this->gpg->setDecryptKeyFromFingerprint($user['gpgkey']['fingerprint'], '');
+        $decryptedChallenge = $this->gpg->decrypt($serverChallenge);
+
+        // Assert challenge content contains required info
+        $this->assertNotEmpty($decryptedChallenge);
+        $deserializedChallenge = json_decode($decryptedChallenge);
+        $this->assertTextEquals(GpgJwtAuthenticator::PROTOCOL_VERSION, $deserializedChallenge->version);
+        $this->assertTextEquals(Router::url('/', true), $deserializedChallenge->domain);
+        $this->assertEquals($userChallenge['verify_token'], $deserializedChallenge->verify_token);
+        $this->assertNotEmpty($deserializedChallenge->access_token);
+        $this->assertNotEmpty($deserializedChallenge->refresh_token);
+    }
 
     // ========================================================================
     // Assert checks
     // ========================================================================
     // Server fingerprint
+
     public function testGpgJwtAuthenticatorAssertServerFingerprint_EmptyError()
     {
         $this->expectException(InternalErrorException::class);
@@ -72,6 +317,7 @@ class GpgJwtAuthenticatorTest extends TestCase
     }
 
     // Server passphrase
+
     public function testGpgJwtAuthenticatorAssertServerPassphrase_EmptyError()
     {
         $this->expectException(InternalErrorException::class);
@@ -91,6 +337,7 @@ class GpgJwtAuthenticatorTest extends TestCase
     }
 
     // User id
+
     public function testGpgJwtAuthenticatorAssertUserId_EmptyError()
     {
         $this->expectException(BadRequestException::class);
@@ -122,26 +369,28 @@ class GpgJwtAuthenticatorTest extends TestCase
     }
 
     // Armored challenge
+
     public function testGpgJwtAuthenticatorAssertArmoredChallenge_EmptyError()
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(BadRequestException::class);
         $this->sut->assertArmoredChallenge(null);
     }
 
     public function testGpgJwtAuthenticatorAssertArmoredChallenge_NotStringError()
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(BadRequestException::class);
         $this->sut->assertArmoredChallenge([]);
     }
 
     public function testGpgJwtAuthenticatorAssertArmoredChallenge_NotOpenpgpMessageError()
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(BadRequestException::class);
         $this->sut->setOpenPGPBackend();
         $this->sut->assertArmoredChallenge('test');
     }
 
     // Protocol version
+
     public function testGpgJwtAuthenticatorAssertVersion_EmptyError()
     {
         $this->expectException(\Exception::class);
@@ -167,6 +416,7 @@ class GpgJwtAuthenticatorTest extends TestCase
     }
 
     // Domain
+
     public function testGpgJwtAuthenticatorAssertDomain_EmptyError()
     {
         $this->expectException(\Exception::class);
@@ -193,11 +443,12 @@ class GpgJwtAuthenticatorTest extends TestCase
 
     public function testGpgJwtAuthenticatorAssertDomain_Success()
     {
-        $this->sut->assertDomain(Router::url(true));
+        $this->sut->assertDomain(Router::url('/', true));
         $this->assertTrue(true);
     }
 
     // Verify token
+
     public function testGpgJwtAuthenticatorAssertVerifyToken_EmptyError()
     {
         $this->expectException(\Exception::class);
@@ -228,6 +479,7 @@ class GpgJwtAuthenticatorTest extends TestCase
     }
 
     // Verify token expiry
+
     public function testGpgJwtAuthenticatorAssertVerifyTokenExpiry_EmptyError()
     {
         $this->expectException(\Exception::class);

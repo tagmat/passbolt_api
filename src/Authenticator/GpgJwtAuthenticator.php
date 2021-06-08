@@ -40,10 +40,10 @@ use Psr\Http\Message\ServerRequestInterface;
 
 class GpgJwtAuthenticator extends AbstractAuthenticator
 {
-    const PROTOCOL_VERSION = '1.0.0';
+    public const PROTOCOL_VERSION = '1.0.0';
 
     /**
-     * @var \App\Utility\OpenPGP\OpenPGPBackendInterface $gpg gpg backend
+     * @var \App\Utility\OpenPGP\OpenPGPBackend $gpg gpg backend
      * @access protected
      */
     protected $gpg;
@@ -55,7 +55,7 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
     protected $request;
 
     /**
-     * @var User $user user
+     * @var \App\Model\Entity\User $user user
      * @access protected
      */
     protected $user;
@@ -80,7 +80,7 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
     /**
      * Authenticate
      *
-     * @param ServerRequestInterface $request interface for accessing request parameters
+     * @param \Cake\Http\ServerRequest $request interface for accessing request parameters
      * @return \Authentication\Authenticator\ResultInterface User|false the user or false if authentication failed
      */
     public function authenticate(ServerRequestInterface $request): ResultInterface
@@ -95,9 +95,9 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
             return $this->errorResult($exception, Result::FAILURE_CREDENTIALS_MISSING);
         } catch (NotFoundException $exception) {
             return $this->errorResult($exception, Result::FAILURE_IDENTITY_NOT_FOUND);
-        } catch(BadRequestException $exception) {
+        } catch (BadRequestException $exception) {
             return $this->errorResult($exception, Result::FAILURE_CREDENTIALS_INVALID);
-        } catch(\Exception $exception) {
+        } catch (\Exception $exception) {
             return $this->errorResult($exception, Result::FAILURE_OTHER);
         }
     }
@@ -105,11 +105,13 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
     /**
      * Authentication process initialization
      *
-     * @throws InternalErrorException if the server or user keys cannot be loaded
-     * @throws BadRequestException if the user data is not valid, if the user id is not provided
-     * @throws NotFoundException if the user cannot be found, is deleted, is not active
+     * @throws \Cake\Http\Exception\InternalErrorException if the server or user keys cannot be loaded
+     * @throws \Cake\Http\Exception\BadRequestException if the user data is not valid, if the user id is not provided
+     * @throws \Cake\Http\Exception\NotFoundException if the user cannot be found, is deleted, is not active
+     * @return void
      */
-    public function init() {
+    public function init(): void
+    {
         $this->setOpenPGPBackend();
         $this->setServerKey();
         $this->loadUserData();
@@ -119,8 +121,8 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
     /**
      * Format success results
      *
-     * @param string $verifyToken
-     * @return Result
+     * @param string $verifyToken token
+     * @return \Authentication\Authenticator\Result
      * @access private
      */
     public function successResult(string $verifyToken): Result
@@ -129,7 +131,7 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
         $refreshToken = (new RefreshTokenCreateService())->createToken($this->user->id);
         $challenge = json_encode([
             'version' => self::PROTOCOL_VERSION,
-            'domain' => Router::url(true),
+            'domain' => Router::url('/', true),
             'verify_token' => $verifyToken,
             'access_token' => $accessToken,
             'refresh_token' => $refreshToken->token,
@@ -144,19 +146,21 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
      * Format error result
      * Log additional information about the error for the administrator
      *
-     * @param \Exception $exception
-     * @param string $reason
-     * @return Result
+     * @param \Exception $exception exception
+     * @param string $reason example Result::FAILURE_CREDENTIALS_MISSING
+     * @return \Authentication\Authenticator\Result
      * @access private
      */
     public function errorResult(\Exception $exception, string $reason): Result
     {
         Log::error($exception->getMessage());
+
         return new Result(null, $reason);
     }
 
     /**
      * @throws \Cake\Http\Exception\InternalErrorException if backend cannot be loaded
+     * @return void
      */
     public function setOpenPGPBackend(): void
     {
@@ -164,7 +168,8 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
     }
 
     /**
-     * @throws InternalErrorException if the server key cannot be loaded
+     * @throws \Cake\Http\Exception\InternalErrorException if the server key cannot be loaded
+     * @return void
      */
     public function setServerKey(): void
     {
@@ -178,10 +183,12 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
 
         // set the key to be used for decrypting
         try {
+            $this->gpg->setSignKeyFromFingerprint($fingerprint, $passphrase);
             $this->gpg->setDecryptKeyFromFingerprint($fingerprint, $passphrase);
         } catch (\Exception $exception) {
             try {
                 $this->gpg->importServerKeyInKeyring();
+                $this->gpg->setSignKeyFromFingerprint($fingerprint, $passphrase);
                 $this->gpg->setDecryptKeyFromFingerprint($fingerprint, $passphrase);
             } catch (\Exception $exception) {
                 $msg = __('The OpenPGP server key defined in the config cannot be used to decrypt.') . ' ';
@@ -193,8 +200,10 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
 
     /**
      * Set user key
-     * @throws BadRequestException if the user data is not valid
-     * @throws InternalErrorException if the user key cannot be loaded
+     *
+     * @throws \Cake\Http\Exception\BadRequestException if the user data is not valid
+     * @throws \Cake\Http\Exception\InternalErrorException if the user key cannot be loaded
+     * @return void
      */
     public function setUserKey(): void
     {
@@ -216,34 +225,51 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
 
     /**
      * Load user data including OpenPGP key in $user props
-     * @throws BadRequestException if the user id is missing in the request
-     * @throws NotFoundException if the user cannot be found, is deleted, is not active
+     *
+     * @throws \Cake\Http\Exception\BadRequestException if the user id is missing in the request
+     * @throws \Cake\Http\Exception\NotFoundException if the user cannot be found, is deleted, is not active
+     * @return void
      * @access private
      */
     public function loadUserData(): void
     {
         $userId = $this->request->getData('user_id');
         $this->assertUserId($userId);
+        $userData = $this->findUser($userId);
+        $this->assertUserData($userData);
+        $this->user = $userData;
+    }
 
+    /**
+     * @param string $userId uuid
+     * @throws \Cake\Http\Exception\NotFoundException if the user cannot be found, is deleted, is not active
+     * @return \App\Model\Entity\User
+     */
+    private function findUser(string $userId): User
+    {
         try {
             /** @var \App\Model\Table\UsersTable $Users */
             $Users = TableRegistry::getTableLocator()->get('Users');
 
-            /** @var \App\Model\Entity\User $user */
+            /** @var \App\Model\Entity\User|null $userData */
             $userData = $Users->findView($userId, Role::GUEST)
                 ->contain('Gpgkeys')
                 ->first();
-            $this->assertUserData($userData);
-            $this->user = $userData;
         } catch (\Exception $exception) {
             Log::error($exception->getMessage());
-            throw new NotFoundException(__('The user could does not exist or has been deleted.'));
+            throw new NotFoundException(__('The user does not exist or has been deleted.'));
         }
+
+        if (!isset($userData)) {
+            throw new NotFoundException(__('The user does not exist or has been deleted.'));
+        }
+
+        return $userData;
     }
 
     /**
      * @throws \InvalidArgumentException if the challenge is missing
-     * @throws BadRequestException if the challenge is invalid
+     * @throws \Cake\Http\Exception\BadRequestException if the challenge is invalid
      * @return string
      */
     public function verifyChallenge(): string
@@ -252,27 +278,29 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
         $armoredChallenge = $this->request->getData('challenge');
         $this->assertArmoredChallenge($armoredChallenge);
 
+        // Verify signature
+        $this->assertUserSignature($armoredChallenge);
+
         // Decrypt
         try {
-            $this->assertUserSignature($armoredChallenge);
             $clearTextChallenge = $this->gpg->decrypt($armoredChallenge);
-        } catch(\Exception $exception) {
+        } catch (\Exception $exception) {
             Log::error($exception->getMessage());
             throw new BadRequestException(__('The challenge cannot be decrypted.'));
         }
 
         // Deserialize JSON
         try {
-            $jsonChallenge = json_decode($clearTextChallenge, false, 1, JSON_THROW_ON_ERROR);
-            list(
+            $jsonChallenge = json_decode($clearTextChallenge, true, 2, JSON_THROW_ON_ERROR);
+            [
                 'version' => $version,
                 'domain' => $domain,
                 'verify_token' => $verifyToken,
-                'verify_token_expiry' => $verifyTokenExpiry
-            ) = $jsonChallenge;
-        } catch(\Exception $exception) {
+                'verify_token_expiry' => $verifyTokenExpiry,
+            ] = $jsonChallenge;
+        } catch (\Exception $exception) {
             Log::error($exception->getMessage() . "\n" . $clearTextChallenge);
-            throw new BadRequestException(__('The challenge is invalid.'));
+            throw new BadRequestException(__('The challenge is invalid. Deserialization failed.'));
         }
 
         // Challenge sanity check
@@ -281,17 +309,18 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
             $this->assertDomain($domain);
             $this->assertVerifyTokenExpiry($verifyTokenExpiry);
             $this->assertVerifyToken($verifyToken);
-        } catch(\Exception $exception) {
-            Log::error($exception->getMessage() . "\n" . $jsonChallenge);
-            throw new BadRequestException(__('The challenge is invalid.'));
+        } catch (\Exception $exception) {
+            Log::error($exception->getMessage() . "\n" . $clearTextChallenge);
+            throw new BadRequestException(__('The challenge is invalid. Validation Failed.'));
         }
 
         return $verifyToken;
     }
 
     /**
-     * @param mixed $fingerprint
-     * @throws InternalErrorException
+     * @param mixed $fingerprint fingerprint
+     * @throws \Cake\Http\Exception\InternalErrorException
+     * @return void
      */
     public function assertServerFingerprint($fingerprint): void
     {
@@ -302,8 +331,9 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
     }
 
     /**
-     * @param mixed $passphrase
-     * @throws InternalErrorException
+     * @param mixed $passphrase passphrase
+     * @throws \Cake\Http\Exception\InternalErrorException
+     * @return void
      */
     public function assertServerPassphrase($passphrase): void
     {
@@ -315,7 +345,8 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
 
     /**
      * @param mixed $userId uuid
-     * @throws BadRequestException
+     * @throws \Cake\Http\Exception\BadRequestException
+     * @return void
      */
     public function assertUserId($userId): void
     {
@@ -327,22 +358,26 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
 
     /**
      * @param mixed $userData data
-     * @throws BadRequestException
+     * @throws \Cake\Http\Exception\BadRequestException
+     * @return void
      */
     public function assertUserData($userData): void
     {
-        if (!isset($userData->gpgkey) ||
+        if (
+            !isset($userData->gpgkey) ||
             !isset($userData->gpgkey->fingerprint) ||
             !isset($userData->gpgkey->armored_key) ||
             !is_string($userData->gpgkey->fingerprint) ||
             !GpgkeysTable::isValidFingerprint($userData->gpgkey->fingerprint) ||
-            !is_string($userData->gpgkey->armored_key)) {
-            throw new BadRequestException(__('The user key could does not exist or has been deleted.'));
+            !is_string($userData->gpgkey->armored_key)
+        ) {
+            $msg = __('The user OpenPGP key does not exist, or is invalid, or has been deleted.');
+            throw new BadRequestException($msg);
         }
     }
 
     /**
-     * @param mixed $armoredChallenge challenge
+     * @param string $armoredChallenge challenge
      * @throws \Exception if armored challenge is invalid
      * @return void
      */
@@ -363,10 +398,12 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
      */
     public function assertArmoredChallenge($armoredChallenge): void
     {
-        if (!isset($armoredChallenge) ||
+        if (
+            !isset($armoredChallenge) ||
             !is_string($armoredChallenge) ||
-            !$this->gpg->isValidMessage($armoredChallenge)) {
-            throw new \InvalidArgumentException(__('The user challenge is missing or invalid.'));
+            !$this->gpg->isValidMessage($armoredChallenge)
+        ) {
+            throw new BadRequestException(__('The user challenge is missing or invalid.'));
         }
     }
 
@@ -384,29 +421,38 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
 
     /**
      * Assert domain
+     *
      * @param mixed $domain domain
      * @throws \Exception if domain is invalid
      * @return void
      */
     public function assertDomain($domain): void
     {
-        if (!isset($domain) ||
-            !is_string($domain) ||
-            rtrim($domain, '/') !== rtrim(Router::url(true), '/')
-        ) {
+        if (!isset($domain) || !is_string($domain)) {
             throw new \Exception(__('The domain is invalid.'));
+        }
+
+        if (rtrim($domain, '/') !== rtrim(Router::url('/', true), '/')) {
+            $expect = rtrim(Router::url('/', true));
+            $got = rtrim($domain, '/');
+            throw new \Exception(__('The domain is invalid. Expected: {0} and got {1}', $expect, $got));
         }
     }
 
     /**
      * Assert verify token
-     * @param mixed $verifyToken
+     *
+     * @param mixed $verifyToken token
      * @throws \Exception if version is not supported
      * @return void
      */
     public function assertVerifyToken($verifyToken): void
     {
-        if (!isset($verifyToken) || !is_string($verifyToken) || preg_match('/^([a-f0-9]{64})$/', $verifyToken) !== 1) {
+        if (
+            !isset($verifyToken) ||
+            !is_string($verifyToken) ||
+            preg_match('/^([a-f0-9]{64})$/', $verifyToken) !== 1
+        ) {
             throw new \Exception(__('The verify token is invalid.'));
         }
         // TODO check token nonce
@@ -414,13 +460,15 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
 
     /**
      * Assert very token expiry
-     * @param $verifyTokenExpiry
+     *
+     * @param mixed $verifyTokenExpiry unix timestamp
      * @throws \Exception if version is not supported
      * @return void
      */
     public function assertVerifyTokenExpiry($verifyTokenExpiry): void
     {
-        if (!isset($verifyTokenExpiry) ||
+        if (
+            !isset($verifyTokenExpiry) ||
             !is_int($verifyTokenExpiry) ||
             $verifyTokenExpiry < time()
         ) {

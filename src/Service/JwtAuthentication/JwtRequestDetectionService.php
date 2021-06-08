@@ -22,6 +22,10 @@ use Psr\Http\Message\ServerRequestInterface;
 
 class JwtRequestDetectionService
 {
+    /**
+     * @param \Psr\Http\Message\ServerRequestInterface $request request
+     * @return bool
+     */
     public function mustUseJwt(ServerRequestInterface $request): bool
     {
         try {

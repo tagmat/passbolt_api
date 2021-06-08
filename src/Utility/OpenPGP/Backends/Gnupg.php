@@ -604,11 +604,11 @@ class Gnupg extends OpenPGPBackend
      * Verify a signed message.
      *
      * @param string $signedText The signed message to verify.
-     * @param mixed $plainText (optional) if this parameter is passed, it will be filled with the plain text.
+     * @param string|null $plainText (optional) if this parameter is passed, it will be filled with the plain text.
      * @return array signature information
      * @throws \Cake\Core\Exception\Exception If the armored signed message cannot be verified.
      */
-    public function verify(string $signedText, string &$plainText = null): array
+    public function verify(string $signedText, ?string &$plainText = null): array
     {
         $this->assertVerifyKey();
         $msg = __('The message cannot be verified.');
@@ -617,6 +617,7 @@ class Gnupg extends OpenPGPBackend
             if (empty($signature) || $signature[0]['fingerprint'] !== $this->_verifyKeyFingerprint) {
                 throw new Exception($msg);
             }
+
             return $signature;
         } catch (\Exception $e) {
             throw new Exception($msg);

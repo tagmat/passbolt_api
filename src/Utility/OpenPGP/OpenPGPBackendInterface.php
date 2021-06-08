@@ -215,7 +215,7 @@ interface OpenPGPBackendInterface
      * @return array signature information
      * @throws \Cake\Core\Exception\Exception If the armored signed message cannot be verified.
      */
-    public function verify(string $signedText, string &$plainText = null): array;
+    public function verify(string $signedText, ?string &$plainText = null): array;
 
     /**
      * Sign a text.
