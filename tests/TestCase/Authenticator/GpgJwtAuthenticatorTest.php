@@ -27,7 +27,6 @@ use Cake\Http\Exception\InternalErrorException;
 use Cake\Http\ServerRequest;
 use Cake\Routing\Router;
 use Cake\TestSuite\TestCase;
-use Cake\Utility\Security;
 
 class GpgJwtAuthenticatorTest extends TestCase
 {
@@ -166,7 +165,7 @@ class GpgJwtAuthenticatorTest extends TestCase
         $challenge = [
             'version' => '2.0.0',
             'domain' => Router::url('/', true),
-            'verify_token' => Security::hash('test', 'sha256'),
+            'verify_token' => UuidFactory::uuid(),
             'verify_token_expiry' => time() + 60,
         ];
         $msg = $this->gpg->encryptSign(json_encode($challenge));
@@ -188,7 +187,7 @@ class GpgJwtAuthenticatorTest extends TestCase
         $challenge = [
             'version' => '1.0.0',
             'domain' => 'https://cloud.passbolt.com/test',
-            'verify_token' => Security::hash('test', 'sha256'),
+            'verify_token' => UuidFactory::uuid(),
             'verify_token_expiry' => time() + 60,
         ];
         $msg = $this->gpg->encryptSign(json_encode($challenge));
@@ -210,7 +209,7 @@ class GpgJwtAuthenticatorTest extends TestCase
         $challenge = [
             'version' => '1.0.0',
             'domain' => Router::url('/', true),
-            'verify_token' => Security::hash('test', 'sha256'),
+            'verify_token' => UuidFactory::uuid(),
             'verify_token_expiry' => time() - 60,
         ];
         $msg = $this->gpg->encryptSign(json_encode($challenge));
@@ -232,7 +231,7 @@ class GpgJwtAuthenticatorTest extends TestCase
         $challenge = [
             'version' => '1.0.0',
             'domain' => Router::url('/', true),
-            'verify_token' => Security::hash('test', 'sha512'),
+            'verify_token' => 'nope',
             'verify_token_expiry' => time() + 60,
         ];
         $msg = $this->gpg->encryptSign(json_encode($challenge));
@@ -254,7 +253,7 @@ class GpgJwtAuthenticatorTest extends TestCase
         $userChallenge = [
             'version' => '1.0.0',
             'domain' => Router::url('/', true),
-            'verify_token' => Security::hash('test', 'sha256'),
+            'verify_token' => UuidFactory::uuid(),
             'verify_token_expiry' => time() + 60,
         ];
         $msg = $this->gpg->encryptSign(json_encode($userChallenge));
@@ -461,7 +460,7 @@ class GpgJwtAuthenticatorTest extends TestCase
         $this->sut->assertVerifyToken([]);
     }
 
-    public function testGpgJwtAuthenticatorAssertVerifyToken_NotShaError()
+    public function testGpgJwtAuthenticatorAssertVerifyToken_NotUuidError()
     {
         $this->expectException(\Exception::class);
         $this->sut->assertVerifyToken('nope');
@@ -474,8 +473,8 @@ class GpgJwtAuthenticatorTest extends TestCase
 
     public function testGpgJwtAuthenticatorAssertVerifyToken_Success()
     {
-        $this->expectException(\Exception::class);
-        $this->sut->assertVerifyToken(Security::hash('test', 'sha512', true));
+        $this->sut->assertVerifyToken(UuidFactory::uuid());
+        $this->assertTrue(true);
     }
 
     // Verify token expiry

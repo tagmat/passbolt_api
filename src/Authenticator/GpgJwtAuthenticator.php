@@ -451,7 +451,7 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
         if (
             !isset($verifyToken) ||
             !is_string($verifyToken) ||
-            preg_match('/^([a-f0-9]{64})$/', $verifyToken) !== 1
+            !Validation::uuid($verifyToken)
         ) {
             throw new \Exception(__('The verify token is invalid.'));
         }
