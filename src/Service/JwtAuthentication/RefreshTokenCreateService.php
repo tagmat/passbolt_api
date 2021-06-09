@@ -17,47 +17,33 @@ declare(strict_types=1);
 namespace App\Service\JwtAuthentication;
 
 use App\Model\Entity\AuthenticationToken;
-use Cake\Datasource\ModelAwareTrait;
 use Cake\Http\Cookie\Cookie;
 
 /**
  * @property \App\Model\Table\AuthenticationTokensTable $AuthenticationTokens
  */
-class RefreshTokenCreateService
+class RefreshTokenCreateService extends RefreshTokenAbstractService
 {
-    use ModelAwareTrait;
-
-    public const USER_REFRESH_KEY = 'refresh_token';
-
     /**
-     * @var string
+     * @param string $userId user uuid
+     * @return \App\Model\Entity\AuthenticationToken
      */
-    protected $userId;
-
-    /**
-     * @param string $userId User ID.
-     */
-    public function __construct(string $userId)
+    public function createToken(string $userId): AuthenticationToken
     {
-        $this->loadModel('AuthenticationTokens');
-        $this->userId = $userId;
+        return $this->AuthenticationTokens->generate($userId, AuthenticationToken::TYPE_REFRESH_TOKEN);
     }
 
     /**
-     * Persist an authentication token and return a secure Cookie
-     * to be attached to the response.
-     *
+     * @param \App\Model\Entity\AuthenticationToken $token token
      * @return \Cake\Http\Cookie\Cookie
      */
-    public function create(): Cookie
+    public function createCookie(AuthenticationToken $token): Cookie
     {
-        $token = $this->AuthenticationTokens->generate(
-            $this->userId,
-            AuthenticationToken::TYPE_REFRESH_TOKEN
-        )->token;
+        $cookie = new Cookie(RefreshTokenRenewalService::REFRESH_TOKEN_COOKIE, $token->token);
 
-        $cookie = new Cookie(RefreshTokenRenewalService::REFRESH_TOKEN_COOKIE, $token);
-
-        return $cookie->withSecure(true)->withHttpOnly(true);
+        // TODO set expiry date based on token expiry
+        return $cookie
+            ->withSecure(true)
+            ->withHttpOnly(true);
     }
 }

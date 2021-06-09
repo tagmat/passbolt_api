@@ -18,9 +18,9 @@ namespace App\Service\JwtAuthentication;
 
 use Firebase\JWT\JWT;
 
-class JwksPublicCreateService extends JwtAbstractService
+class JwksGetService extends JwtAbstractService
 {
-    public const PUBLIC_KEY_PATH = CONFIG . 'jwt.pem';
+    public const PUBLIC_KEY_PATH = CONFIG . 'jwt/jwt.pem';
 
     /**
      * @var string

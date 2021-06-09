@@ -44,7 +44,7 @@ class AuthIsAuthenticatedControllerTest extends AppIntegrationTestCase
         $this->assertTextContains('success', $this->_responseJsonHeader->status);
     }
 
-    public function testIsAuthenticatedWithJwt()
+    public function testIsAuthenticatedWithJwt_Success()
     {
         $user = UserFactory::make()->user()->persist();
         $this->createJwtTokenAndSetInHeader($user->id);
@@ -53,7 +53,7 @@ class AuthIsAuthenticatedControllerTest extends AppIntegrationTestCase
         $this->assertTextContains('success', $this->_responseJsonHeader->status);
     }
 
-    public function testIsAuthenticatedWithJwtWithOnActiveUser()
+    public function testIsAuthenticatedWithJwt_ErrorWithInactiveUser()
     {
         $user = UserFactory::make()->user()->inactive()->persist();
         $this->createJwtTokenAndSetInHeader($user->id);
@@ -61,7 +61,7 @@ class AuthIsAuthenticatedControllerTest extends AppIntegrationTestCase
         $this->assertResponseError();
     }
 
-    public function testIsAuthenticatedWithJwtWithOnDeletedUser()
+    public function testIsAuthenticatedWithJwt_ErrorWithDeletedUser()
     {
         $user = UserFactory::make()->user()->deleted()->persist();
         $this->createJwtTokenAndSetInHeader($user->id);

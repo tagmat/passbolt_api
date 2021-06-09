@@ -17,7 +17,7 @@ declare(strict_types=1);
 
 namespace App\Test\TestCase\Service\JwtAuthentication;
 
-use App\Service\JwtAuthentication\JwksPublicCreateService;
+use App\Service\JwtAuthentication\JwksGetService;
 use App\Service\JwtAuthentication\JwtTokenCreateService;
 use App\Utility\UuidFactory;
 use Cake\Core\Configure;
@@ -46,7 +46,7 @@ class JwtTokenCreateServiceTest extends TestCase
         Configure::write('passbolt.auth.token.jwt.expiry', $expiration);
         $userId = UuidFactory::uuid();
         $secretToken = (new JwtTokenCreateService())->createToken($userId);
-        $publicKey = file_get_contents((new JwksPublicCreateService())->getKeyPath());
+        $publicKey = file_get_contents((new JwksGetService())->getKeyPath());
 
         if (!$isValid) {
             $this->expectException(ExpiredException::class);

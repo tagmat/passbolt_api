@@ -90,7 +90,7 @@ class GpgAuthenticator extends SessionAuthenticator
         if ($request->is('json')) {
             throw new ForbiddenException(__('You need to login to access this location.'));
         }
-        // Otherwise we let the controller handle it
+        // Otherwise we let the controller handle the redirections
     }
 
     /**
@@ -119,7 +119,7 @@ class GpgAuthenticator extends SessionAuthenticator
     {
         $this->addJwtTokenPropertyToUser();
 
-        return new Result($this->_user->toArray(), Result::SUCCESS, $this->headers);
+        return new Result(['user' => $this->_user->toArray()], Result::SUCCESS, $this->headers);
     }
 
     /**
@@ -132,10 +132,10 @@ class GpgAuthenticator extends SessionAuthenticator
     {
         try {
             $jwtToken = (new JwtTokenCreateService())->createToken($this->_user->id);
-            $refreshToken = (new RefreshTokenCreateService($this->_user->id))->create();
+            $refreshToken = (new RefreshTokenCreateService())->createToken($this->_user->id);
 
-            $this->_user->set(JwtTokenCreateService::USER_JWT_KEY, $jwtToken);
-            $this->_user->set(RefreshTokenCreateService::USER_REFRESH_KEY, $refreshToken);
+            $this->_user->set(JwtTokenCreateService::USER_ACCESS_TOKEN_KEY, $jwtToken);
+            $this->_user->set(RefreshTokenCreateService::USER_REFRESH_TOKEN_KEY, $refreshToken);
         } catch (InvalidJwtKeyPairException $e) {
             // Do nothing if the JWT Key pair does not exist
         }

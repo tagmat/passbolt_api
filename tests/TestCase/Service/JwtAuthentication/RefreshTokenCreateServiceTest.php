@@ -26,12 +26,13 @@ use Cake\TestSuite\TestCase;
  */
 class RefreshTokenCreateServiceTest extends TestCase
 {
-    public function testsRefreshTokenCreateService()
+    public function testRefreshTokenCreateService()
     {
         $userId = UserFactory::make()->persist()->id;
-        $token = (new RefreshTokenCreateService($userId))->create();
-        $this->assertTrue($token->isSecure());
-        $this->assertTrue($token->isHttpOnly());
-        $this->assertFalse($token->isExpired());
+        $token = (new RefreshTokenCreateService())->createToken($userId);
+        $cookie = (new RefreshTokenCreateService())->createCookie($token);
+        $this->assertTrue($cookie->isSecure());
+        $this->assertTrue($cookie->isHttpOnly());
+        $this->assertFalse($cookie->isExpired());
     }
 }

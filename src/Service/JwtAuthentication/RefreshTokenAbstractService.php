@@ -14,34 +14,25 @@ declare(strict_types=1);
  * @link          https://www.passbolt.com Passbolt(tm)
  * @since         3.3.0
  */
+namespace App\Service\JwtAuthentication;
 
-namespace App\Controller\Auth;
+use Cake\Datasource\ModelAwareTrait;
 
-use App\Controller\AppController;
-use App\Service\JwtAuthentication\JwksGetService;
-use Cake\Event\EventInterface;
-
-class AuthJwksController extends AppController
+/**
+ * @property \App\Model\Table\AuthenticationTokensTable $AuthenticationTokens
+ */
+abstract class RefreshTokenAbstractService
 {
-    /**
-     * @inheritDoc
-     */
-    public function beforeFilter(EventInterface $event)
-    {
-        parent::beforeFilter($event);
+    use ModelAwareTrait;
 
-        $this->Authentication->allowUnauthenticated(['index']);
-    }
+    public const REFRESH_TOKEN_COOKIE = 'refresh_token';
+    public const USER_REFRESH_TOKEN_KEY = 'refresh_token';
 
     /**
-     * Serve the JWT public key
-     *
-     * @return void
+     * RefreshTokenCreateService constructor.
      */
-    public function index()
+    public function __construct()
     {
-        $keys['keys'][] = (new JwksGetService())->getPublicKey();
-
-        $this->success(__('The operation was successful.'), $keys);
+        $this->loadModel('AuthenticationTokens');
     }
 }

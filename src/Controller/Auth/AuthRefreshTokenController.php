@@ -26,21 +26,17 @@ class AuthRefreshTokenController extends AppController
     /**
      * Serve a refresh token and a new JWT token.
      *
-     * @return void
      * @throws \Cake\Http\Exception\BadRequestException if the refresh token is not set in the request.
      * @throws \App\Error\Exception\JWT\InvalidRefreshKeyException if the refresh token is not valid.
+     * @return void
      */
-    public function index()
+    public function refreshPost()
     {
-        $refreshHttpOnlySecureCookie = (new RefreshTokenRenewalService(
-            $this->User->id(),
-            $this->getRequest()
-        ))->renew();
-        $jwtToken = (new JwtTokenCreateService())->createToken($this->User->id());
+        $userId = $this->User->id();
+        $refreshHttpOnlySecureCookie = (new RefreshTokenRenewalService($userId, $this->getRequest()))->renew();
 
-        $this->setResponse(
-            $this->getResponse()->withCookie($refreshHttpOnlySecureCookie)
-        );
+        $jwtToken = (new JwtTokenCreateService())->createToken($userId);
+        $this->setResponse($this->getResponse()->withCookie($refreshHttpOnlySecureCookie));
 
         $this->success(__('The operation was successful.'), $jwtToken);
     }

@@ -42,8 +42,13 @@ class RefreshTokenRenewalServiceTest extends TestCase
     public function testRefreshTokenRenewalServiceWithNoExistingRefreshCookie()
     {
         $userId = UserFactory::make()->persist()->id;
+
+        $refreshTokenService = new RefreshTokenCreateService();
+        $authToken = $refreshTokenService->createToken($userId);
+        $cookie = $refreshTokenService->createCookie($authToken);
+
         $request = new ServerRequest(['cookies' => [
-            RefreshTokenCreateService::USER_REFRESH_KEY => (new RefreshTokenCreateService($userId))->create()->getValue(),
+            RefreshTokenCreateService::USER_REFRESH_TOKEN_KEY => $cookie->getValue(),
         ]]);
         $tokenInTheRequest = $this->AuthenticationTokens->find()->firstOrFail();
 

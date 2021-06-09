@@ -23,6 +23,7 @@ use App\Test\Factory\AuthenticationTokenFactory;
 use App\Test\Factory\UserFactory;
 use App\Test\Lib\AppIntegrationTestCase;
 use App\Test\Lib\Utility\JsonRequestTrait;
+use App\Utility\UuidFactory;
 use Cake\Datasource\ModelAwareTrait;
 use Cake\TestSuite\IntegrationTestTrait;
 
@@ -45,7 +46,7 @@ class AuthRefreshTokenControllerTest extends AppIntegrationTestCase
 
     public function testAuthRefreshTokenControllerUnauthenticated()
     {
-        $this->getJson('/auth/refresh-token.json');
+        $this->postJson('/auth/jwt/refresh.json', ['user_id' => UuidFactory::uuid()]);
         $this->assertResponseError();
     }
 
@@ -54,7 +55,7 @@ class AuthRefreshTokenControllerTest extends AppIntegrationTestCase
         $user = UserFactory::make()->user()->persist();
         $this->createJwtTokenAndSetInHeader($user->id);
 
-        $this->getJson('/auth/refresh-token.json');
+        $this->postJson('/auth/jwt/refresh.json', ['user_id' => $user->id]);
         $this->assertBadRequestError('No refresh token is provided in the request.');
     }
 
@@ -78,7 +79,7 @@ class AuthRefreshTokenControllerTest extends AppIntegrationTestCase
             RefreshTokenRenewalService::getPepper()
         );
 
-        $this->getJson('/auth/refresh-token.json');
+        $this->postJson('/auth/jwt/refresh.json', ['user_id' => $user->id]);
         $this->assertResponseOk();
 
         $jwt = (string)$this->_responseJsonBody;
@@ -110,7 +111,7 @@ class AuthRefreshTokenControllerTest extends AppIntegrationTestCase
             $oldRefreshToken
         );
 
-        $this->getJson('/auth/refresh-token.json');
+        $this->postJson('/auth/jwt/refresh.json', ['user_id' => $user->id]);
         $this->assertBadRequestError('No refresh token is provided in the request.');
     }
 
@@ -136,7 +137,7 @@ class AuthRefreshTokenControllerTest extends AppIntegrationTestCase
             RefreshTokenRenewalService::getPepper()
         );
 
-        $this->getJson('/auth/refresh-token.json');
+        $this->postJson('/auth/jwt/refresh.json', ['user_id' => $user->id]);
         $this->assertResponseCode(401);
         $this->assertResponseError('The refresh token provided is expired.');
     }

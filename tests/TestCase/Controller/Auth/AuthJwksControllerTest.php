@@ -27,7 +27,7 @@ class AuthJwksControllerTest extends TestCase
 
     public function testAuthVerifyControllerUserGetSuccess()
     {
-        $this->getJson('/auth/jwks.json');
+        $this->getJson('/auth/jwt/jwks.json');
         $this->assertCount(1, $this->_responseJsonBody->keys);
         $this->assertResponseOk();
         $responseKeys = $this->_responseJsonBody->keys;

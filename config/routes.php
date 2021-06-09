@@ -50,6 +50,7 @@ Router::scope('/', function (RouteBuilder $routes) {
 Router::scope('/auth', function (RouteBuilder $routes) {
     $routes->setExtensions(['json']);
 
+    // Session based
     $routes->connect('/login', ['prefix' => 'Auth', 'controller' => 'AuthLogin', 'action' => 'loginGet'])
         ->setMethods(['GET']);
 
@@ -68,11 +69,15 @@ Router::scope('/auth', function (RouteBuilder $routes) {
     $routes->connect('/logout', ['prefix' => 'Auth', 'controller' => 'AuthLogout', 'action' => 'logoutGet'])
         ->setMethods(['GET']);
 
-    $routes->connect('/jwks', ['prefix' => 'Auth', 'controller' => 'AuthJwks', 'action' => 'index'])
+    // JWT based
+    $routes->connect('/jwt/login', ['prefix' => 'Auth', 'controller' => 'AuthJwtLogin', 'action' => 'loginPost'])
+        ->setMethods(['POST']);
+
+    $routes->connect('/jwt/jwks', ['prefix' => 'Auth', 'controller' => 'AuthJwks', 'action' => 'index'])
         ->setMethods(['GET']);
 
-    $routes->connect('/refresh-token', ['prefix' => 'Auth', 'controller' => 'AuthRefreshToken', 'action' => 'index'])
-        ->setMethods(['GET']);
+    $routes->connect('/jwt/refresh', ['prefix' => 'Auth', 'controller' => 'AuthRefreshToken', 'action' => 'refreshPost'])
+        ->setMethods(['POST']);
 });
 
 /**

@@ -19,7 +19,6 @@ namespace App\Service\JwtAuthentication;
 use App\Error\Exception\JWT\InvalidRefreshKeyException;
 use App\Model\Entity\AuthenticationToken;
 use Cake\Core\Configure;
-use Cake\Datasource\ModelAwareTrait;
 use Cake\Http\Cookie\Cookie;
 use Cake\Http\Exception\BadRequestException;
 use Cake\Http\Exception\InternalErrorException;
@@ -28,12 +27,8 @@ use Cake\Http\ServerRequest;
 /**
  * @property \App\Model\Table\AuthenticationTokensTable $AuthenticationTokens
  */
-class RefreshTokenRenewalService
+class RefreshTokenRenewalService extends RefreshTokenAbstractService
 {
-    use ModelAwareTrait;
-
-    public const REFRESH_TOKEN_COOKIE = 'refresh_token';
-
     /**
      * @var \Cake\Http\ServerRequest|null
      */
@@ -50,8 +45,7 @@ class RefreshTokenRenewalService
      */
     final public function __construct(string $userId, ?ServerRequest $request = null)
     {
-        $this->loadModel('AuthenticationTokens');
-
+        parent::__construct();
         $this->userId = $userId;
         $this->request = $request;
     }
@@ -67,10 +61,14 @@ class RefreshTokenRenewalService
     public function renew(): Cookie
     {
         $oldToken = $this->readAndValidateToken();
-        $newToken = (new RefreshTokenCreateService($this->userId))->create();
+
+        $refreshTokenCreateService = new RefreshTokenCreateService();
+
+        $newToken = $refreshTokenCreateService->createToken($this->userId);
+        $newCookie = $refreshTokenCreateService->createCookie($newToken);
         $this->deactivateToken($oldToken);
 
-        return $newToken;
+        return $newCookie;
     }
 
     /**

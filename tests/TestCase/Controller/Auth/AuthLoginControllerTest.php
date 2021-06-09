@@ -322,7 +322,7 @@ class AuthLoginControllerTest extends AppIntegrationTestCase
 
         // Check that the JWT token is set.
         /** @var string $jwtToken */
-        $jwtToken = $this->_responseJsonBody->{JwtTokenCreateService::USER_JWT_KEY} ?? null;
+        $jwtToken = $this->_responseJsonBody->{JwtTokenCreateService::USER_ACCESS_TOKEN_KEY} ?? null;
         $this->assertIsString($jwtToken);
 
         // Ensure that the JWT Token delivered is valid.

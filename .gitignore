@@ -14,8 +14,8 @@
 /config/gpg/*.key
 /config/license
 /config/subscription_key.txt
-/config/jwt.key
-/config/jwt.pem
+/config/jwt/jwt.key
+/config/jwt/jwt.pem
 
 # JS Dependencies #
 ################

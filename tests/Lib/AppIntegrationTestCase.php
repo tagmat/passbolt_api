@@ -151,7 +151,7 @@ abstract class AppIntegrationTestCase extends TestCase
     public function setJwtTokenInHeader(string $token): void
     {
         $this->configRequest([
-            'headers' => [JwtTokenCreateService::HEADER => $token],
+            'headers' => [JwtTokenCreateService::HEADER => 'Bearer ' . $token],
         ]);
     }
 

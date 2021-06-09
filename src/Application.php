@@ -16,7 +16,6 @@ declare(strict_types=1);
  */
 namespace App;
 
-use App\Error\Exception\JWT\InvalidJwtKeyPairException;
 use App\Middleware\ContentSecurityPolicyMiddleware;
 use App\Middleware\CsrfProtectionMiddleware;
 use App\Middleware\GpgAuthHeadersMiddleware;
@@ -26,7 +25,8 @@ use App\Notification\Email\Redactor\CoreEmailRedactorPool;
 use App\Notification\EmailDigest\DigestRegister\GroupDigests;
 use App\Notification\EmailDigest\DigestRegister\ResourceDigests;
 use App\Notification\NotificationSettings\CoreNotificationSettingsDefinition;
-use App\Service\JwtAuthentication\JwksPublicCreateService;
+use App\Service\JwtAuthentication\JwksGetService;
+use App\Service\JwtAuthentication\JwtRequestDetectionService;
 use App\Service\JwtAuthentication\JwtTokenCreateService;
 use App\Service\JwtAuthentication\RefreshTokenRenewalService;
 use Authentication\AuthenticationService;
@@ -73,16 +73,14 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
          * - Apply CSRF protection
          */
         $middlewareQueue
-            ->add(ContentSecurityPolicyMiddleware::class)
+            ->add(new ContentSecurityPolicyMiddleware())
             ->add(new ErrorHandlerMiddleware(Configure::read('Error')))
-            ->add(new AssetMiddleware([
-                'cacheTime' => Configure::read('Asset.cacheTime'),
-            ]))
+            ->add(new AssetMiddleware(['cacheTime' => Configure::read('Asset.cacheTime')]))
             ->add(new RoutingMiddleware($this))
             ->add(new SessionPreventExtensionMiddleware())
             ->add(new BodyParserMiddleware())
             ->add(new AuthenticationMiddleware($this))
-            ->add(GpgAuthHeadersMiddleware::class)
+            ->add(new GpgAuthHeadersMiddleware())
             ->add($csrf);
 
         /*
@@ -290,13 +288,7 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
             ]);
         }
 
-        $jwtPublicKey = null;
-        try {
-            $jwtPublicKey = (new JwksPublicCreateService())->getPublicKey();
-        } catch (InvalidJwtKeyPairException $e) {
-        }
-
-        if ($jwtPublicKey !== null) {
+        if ((new JwtRequestDetectionService())->mustUseJwt($request)) {
             $service->loadIdentifier('Authentication.JwtSubject', [
                 'resolver' => [
                     'className' => 'Authentication.Orm',
@@ -305,15 +297,16 @@ class Application extends BaseApplication implements AuthenticationServiceProvid
             ]);
             $service->loadAuthenticator('Authentication.Jwt', [
                 'header' => JwtTokenCreateService::HEADER,
-                'secretKey' => file_get_contents(JwksPublicCreateService::PUBLIC_KEY_PATH),
+                'secretKey' => file_get_contents(JwksGetService::PUBLIC_KEY_PATH),
                 'algorithms' => [JwtTokenCreateService::ALG],
                 'returnPayload' => false,
             ]);
+            $service->loadAuthenticator('GpgJwt');
+        } else {
+            // Load the default authenticators. Session should be first.
+            $service->loadAuthenticator('Authentication.Session');
+            $service->loadAuthenticator('Gpg');
         }
-
-        // Load the authenticators. Session should be first.
-        $service->loadAuthenticator('Authentication.Session');
-        $service->loadAuthenticator('Gpg');
 
         return $service;
     }

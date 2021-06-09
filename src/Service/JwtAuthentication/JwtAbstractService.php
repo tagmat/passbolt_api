@@ -20,6 +20,8 @@ use App\Error\Exception\JWT\InvalidJwtKeyPairException;
 
 abstract class JwtAbstractService
 {
+    public const USER_ACCESS_TOKEN_KEY = 'jwt_token';
+
     /**
      * @var string
      */

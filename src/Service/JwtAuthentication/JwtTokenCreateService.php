@@ -17,16 +17,16 @@ declare(strict_types=1);
 namespace App\Service\JwtAuthentication;
 
 use Cake\Core\Configure;
+use Cake\Routing\Router;
 use Cake\Validation\Validation;
 use Firebase\JWT\JWT;
 use InvalidArgumentException;
 
 class JwtTokenCreateService extends JwtAbstractService
 {
-    public const SECRET_KEY_PATH = CONFIG . '/jwt.key';
+    public const SECRET_KEY_PATH = CONFIG . '/jwt/jwt.key';
     public const ALG = 'RS256';
-    public const HEADER = 'JwtAuthorization';
-    public const USER_JWT_KEY = 'jwt_token';
+    public const HEADER = 'Authorization';
 
     /**
      * @var string
@@ -48,7 +48,7 @@ class JwtTokenCreateService extends JwtAbstractService
         $privateKey = $this->readKeyFileContent();
         $expirationDate = time() + Configure::read('passbolt.auth.token.jwt.expiry', 0);
         $payload = [
-            'iss' => Configure::read('fullBaseUrl'), // TODO: check that this is O.K. for the cloud.
+            'iss' => Router::url('/', true),
             'sub' => $userId,
             'exp' => $expirationDate,
         ];
