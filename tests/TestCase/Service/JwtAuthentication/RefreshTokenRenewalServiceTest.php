@@ -23,7 +23,6 @@ use App\Service\JwtAuthentication\RefreshTokenRenewalService;
 use App\Test\Factory\AuthenticationTokenFactory;
 use App\Test\Factory\UserFactory;
 use Cake\Datasource\ModelAwareTrait;
-use Cake\Http\ServerRequest;
 use Cake\TestSuite\TestCase;
 
 /**
@@ -47,9 +46,6 @@ class RefreshTokenRenewalServiceTest extends TestCase
         $authToken = $refreshTokenService->createToken($userId);
         $cookie = $refreshTokenService->createCookie($authToken);
 
-        $request = new ServerRequest(['cookies' => [
-            RefreshTokenCreateService::USER_REFRESH_TOKEN_KEY => $cookie->getValue(),
-        ]]);
         $tokenInTheRequest = $this->AuthenticationTokens->find()->firstOrFail();
 
         $someUserTokenNotInvolvedInTheRenewal = AuthenticationTokenFactory::make()
@@ -58,8 +54,9 @@ class RefreshTokenRenewalServiceTest extends TestCase
             ->userId($userId)
             ->persist();
 
-        $service = new RefreshTokenRenewalService($userId, $request);
-        $cookie = $service->renew();
+        $service = new RefreshTokenRenewalService($userId, $authToken->token);
+        $newToken = $service->renewToken();
+        $cookie = $service->renewCookie($newToken);
 
         $this->assertTrue($this->AuthenticationTokens->exists(['id' => $someUserTokenNotInvolvedInTheRenewal->id]));
         $this->assertTrue($this->AuthenticationTokens->exists([

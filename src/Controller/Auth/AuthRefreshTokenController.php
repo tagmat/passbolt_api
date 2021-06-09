@@ -31,7 +31,7 @@ class AuthRefreshTokenController extends AppController
     public function beforeFilter(\Cake\Event\EventInterface $event)
     {
         $this->Authentication->allowUnauthenticated([
-            'refreshPost'
+            'refreshPost',
         ]);
 
         return parent::beforeFilter($event);
@@ -66,7 +66,7 @@ class AuthRefreshTokenController extends AppController
         $refreshedToken = $refreshService->renewToken();
         $jwtToken = (new JwtTokenCreateService())->createToken($userId);
         $result = [
-            'access_token' => $jwtToken
+            'access_token' => $jwtToken,
         ];
 
         if ($cookieBased) {

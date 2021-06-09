@@ -20,9 +20,7 @@ use App\Error\Exception\JWT\InvalidRefreshKeyException;
 use App\Model\Entity\AuthenticationToken;
 use Cake\Core\Configure;
 use Cake\Http\Cookie\Cookie;
-use Cake\Http\Exception\BadRequestException;
 use Cake\Http\Exception\InternalErrorException;
-use Cake\Http\ServerRequest;
 use Cake\Validation\Validation;
 
 /**
@@ -66,9 +64,9 @@ class RefreshTokenRenewalService extends RefreshTokenAbstractService
      * 1. Read and validate the refresh token passed in the request
      * 2. Create a new token
      * 3. Delete the exiting token retrieved in step 1
-     * 4. Return th new token
+     * 4. Return the new token
      *
-     * @return AuthenticationToken
+     * @return \App\Model\Entity\AuthenticationToken
      */
     public function renewToken(): AuthenticationToken
     {
@@ -84,12 +82,13 @@ class RefreshTokenRenewalService extends RefreshTokenAbstractService
     /**
      * Return a httponly secure cookie with the new token
      *
-     * @param AuthenticationToken $token
-     * @return Cookie
+     * @param \App\Model\Entity\AuthenticationToken $token New refresh token.
+     * @return \Cake\Http\Cookie\Cookie
      */
     public function renewCookie(AuthenticationToken $token): Cookie
     {
         $refreshTokenCreateService = new RefreshTokenCreateService();
+
         return $refreshTokenCreateService->createCookie($token);
     }
 

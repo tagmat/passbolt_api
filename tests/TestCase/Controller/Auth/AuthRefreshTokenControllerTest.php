@@ -56,7 +56,7 @@ class AuthRefreshTokenControllerTest extends AppIntegrationTestCase
         $this->createJwtTokenAndSetInHeader($user->id);
 
         $this->postJson('/auth/jwt/refresh.json', ['user_id' => $user->id]);
-        $this->assertBadRequestError('No refresh token is provided in the request.');
+        $this->assertBadRequestError('A valid refresh token is required.');
     }
 
     public function testAuthRefreshTokenControllerAuthenticatedWithValidRefreshTokenCookie()
@@ -82,7 +82,7 @@ class AuthRefreshTokenControllerTest extends AppIntegrationTestCase
         $this->postJson('/auth/jwt/refresh.json', ['user_id' => $user->id]);
         $this->assertResponseOk();
 
-        $jwt = (string)$this->_responseJsonBody;
+        $jwt = $this->_responseJsonBody->access_token;
 
         // Get a fresh request
         $this->cleanup();
@@ -112,7 +112,7 @@ class AuthRefreshTokenControllerTest extends AppIntegrationTestCase
         );
 
         $this->postJson('/auth/jwt/refresh.json', ['user_id' => $user->id]);
-        $this->assertBadRequestError('No refresh token is provided in the request.');
+        $this->assertBadRequestError('A valid refresh token is required.');
     }
 
     public function testAuthRefreshTokenControllerAuthenticatedWithExpiredEncryptedCookie()
