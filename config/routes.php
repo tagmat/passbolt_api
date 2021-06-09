@@ -78,6 +78,9 @@ Router::scope('/auth', function (RouteBuilder $routes) {
 
     $routes->connect('/jwt/refresh', ['prefix' => 'Auth', 'controller' => 'AuthRefreshToken', 'action' => 'refreshPost'])
         ->setMethods(['POST']);
+
+    $routes->connect('/jwt/logout', ['prefix' => 'Auth', 'controller' => 'AuthJwtLogout', 'action' => 'logoutPost'])
+        ->setMethods(['POST']);
 });
 
 /**

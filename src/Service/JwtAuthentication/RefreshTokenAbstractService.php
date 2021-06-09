@@ -16,6 +16,7 @@ declare(strict_types=1);
  */
 namespace App\Service\JwtAuthentication;
 
+use App\Model\Entity\AuthenticationToken;
 use Cake\Datasource\ModelAwareTrait;
 
 /**
@@ -34,5 +35,29 @@ abstract class RefreshTokenAbstractService
     public function __construct()
     {
         $this->loadModel('AuthenticationTokens');
+    }
+
+    /**
+     * Find the token corresponding to the user and refresh token.
+     *
+     * @param string $refreshToken Refresh token to retrieve.
+     * @param string $userId User ID.
+     * @return \App\Model\Entity\AuthenticationToken|null
+     */
+    protected function findToken(string $refreshToken, string $userId): ?AuthenticationToken
+    {
+        if (empty($refreshToken)) {
+            return null;
+        }
+
+        /** @var \App\Model\Entity\AuthenticationToken|null $refreshToken */
+        $refreshToken = $this->AuthenticationTokens->find()->where([
+            'active' => true,
+            'user_id' => $userId,
+            'token' => $refreshToken,
+            'type' => AuthenticationToken::TYPE_REFRESH_TOKEN,
+        ])->first();
+
+        return $refreshToken;
     }
 }

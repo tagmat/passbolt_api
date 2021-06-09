@@ -40,6 +40,8 @@ class AuthRefreshTokenControllerTest extends AppIntegrationTestCase
 
     public function setUp(): void
     {
+        parent::setUp();
+
         $this->loadModel('AuthenticationTokens');
         (new JwtKeyPairCreateService())->createKeyPair();
     }

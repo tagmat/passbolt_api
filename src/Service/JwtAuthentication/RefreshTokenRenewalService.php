@@ -99,7 +99,7 @@ class RefreshTokenRenewalService extends RefreshTokenAbstractService
      */
     protected function readAndValidateToken(): AuthenticationToken
     {
-        $token = $this->findToken($this->token);
+        $token = $this->findToken($this->token, $this->userId);
 
         if ($token === null) {
             throw new InvalidRefreshKeyException(__(
@@ -128,29 +128,6 @@ class RefreshTokenRenewalService extends RefreshTokenAbstractService
                 __('The refresh token could not be deactivated, and was not renewed.')
             );
         }
-    }
-
-    /**
-     * Find the token corresponding to the user and refresh token.
-     *
-     * @param string $refreshToken Refresh token to retrieve.
-     * @return \App\Model\Entity\AuthenticationToken|null
-     */
-    protected function findToken(string $refreshToken): ?AuthenticationToken
-    {
-        if (empty($refreshToken)) {
-            return null;
-        }
-
-        /** @var \App\Model\Entity\AuthenticationToken|null $refreshToken */
-        $refreshToken = $this->AuthenticationTokens->find()->where([
-            'active' => true,
-            'user_id' => $this->userId,
-            'token' => $refreshToken,
-            'type' => AuthenticationToken::TYPE_REFRESH_TOKEN,
-        ])->first();
-
-        return $refreshToken;
     }
 
     /**

@@ -50,19 +50,6 @@ trait AuthenticationTokensFindersTrait
     }
 
     /**
-     * Find an active user refresh token.
-     *
-     * @param \Cake\ORM\Query $query The query to decorate
-     * @param array $options The finder options
-     *   [userId: string, token: string]
-     * @return \Cake\ORM\Query
-     */
-    public function findActiveUserRefreshToken(Query $query, array $options): Query
-    {
-        return $this->findActiveByType($query, AuthenticationToken::TYPE_REFRESH_TOKEN, $options);
-    }
-
-    /**
      * @param \Cake\ORM\Query $query The query to decorate
      * @param string $type The token type
      * @param array $options The finder options
