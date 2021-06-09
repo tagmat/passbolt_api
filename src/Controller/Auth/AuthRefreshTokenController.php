@@ -20,9 +20,23 @@ namespace App\Controller\Auth;
 use App\Controller\AppController;
 use App\Service\JwtAuthentication\JwtTokenCreateService;
 use App\Service\JwtAuthentication\RefreshTokenRenewalService;
+use Cake\Http\Exception\BadRequestException;
+use Cake\Validation\Validation;
 
 class AuthRefreshTokenController extends AppController
 {
+    /**
+     * @inheritDoc
+     */
+    public function beforeFilter(\Cake\Event\EventInterface $event)
+    {
+        $this->Authentication->allowUnauthenticated([
+            'refreshPost'
+        ]);
+
+        return parent::beforeFilter($event);
+    }
+
     /**
      * Serve a refresh token and a new JWT token.
      *
@@ -32,12 +46,36 @@ class AuthRefreshTokenController extends AppController
      */
     public function refreshPost()
     {
-        $userId = $this->User->id();
-        $refreshHttpOnlySecureCookie = (new RefreshTokenRenewalService($userId, $this->getRequest()))->renew();
+        $cookieBased = true;
 
+        $userId = $this->User->id() ?? $this->request->getData('user_id');
+        if (!isset($userId) || !Validation::uuid($userId)) {
+            throw new BadRequestException(__('A valid user id is required.'));
+        }
+
+        $token = $this->request->getCookie(RefreshTokenRenewalService::REFRESH_TOKEN_COOKIE, null);
+        if (!isset($token)) {
+            $cookieBased = false;
+            $this->request->getData('refresh_token');
+        }
+        if (!isset($token) || !Validation::uuid($token)) {
+            throw new BadRequestException(__('A valid refresh token is required.'));
+        }
+
+        $refreshService = new RefreshTokenRenewalService($userId, $token);
+        $refreshedToken = $refreshService->renewToken();
         $jwtToken = (new JwtTokenCreateService())->createToken($userId);
-        $this->setResponse($this->getResponse()->withCookie($refreshHttpOnlySecureCookie));
+        $result = [
+            'access_token' => $jwtToken
+        ];
 
-        $this->success(__('The operation was successful.'), $jwtToken);
+        if ($cookieBased) {
+            $refreshHttpOnlySecureCookie = $refreshService->renewCookie($refreshedToken);
+            $this->setResponse($this->getResponse()->withCookie($refreshHttpOnlySecureCookie));
+        } else {
+            $result['refresh_token'] = $refreshedToken;
+        }
+
+        $this->success(__('The operation was successful.'), $result);
     }
 }

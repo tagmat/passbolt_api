@@ -23,6 +23,7 @@ use Cake\Http\Cookie\Cookie;
 use Cake\Http\Exception\BadRequestException;
 use Cake\Http\Exception\InternalErrorException;
 use Cake\Http\ServerRequest;
+use Cake\Validation\Validation;
 
 /**
  * @property \App\Model\Table\AuthenticationTokensTable $AuthenticationTokens
@@ -35,40 +36,61 @@ class RefreshTokenRenewalService extends RefreshTokenAbstractService
     protected $request;
 
     /**
-     * @var string
+     * @var string $userId uuid
      */
     protected $userId;
 
     /**
-     * @param string $userId User ID.
-     * @param \Cake\Http\ServerRequest|null $request Client request (optional).
+     * @var string $token uuid
      */
-    final public function __construct(string $userId, ?ServerRequest $request = null)
+    protected $token;
+
+    /**
+     * @param string $userId User ID.
+     * @param string $token refresh token uuid
+     */
+    final public function __construct(string $userId, string $token)
     {
         parent::__construct();
+        if (!Validation::uuid($userId)) {
+            throw new \InvalidArgumentException(__('This is not a valid user id.'));
+        }
+        if (!Validation::uuid($token)) {
+            throw new \InvalidArgumentException(__('This is not a valid refresh token.'));
+        }
         $this->userId = $userId;
-        $this->request = $request;
+        $this->token = $token;
     }
 
     /**
      * 1. Read and validate the refresh token passed in the request
      * 2. Create a new token
      * 3. Delete the exiting token retrieved in step 1
-     * 4. Return a httponly secure cookie with the new token
+     * 4. Return th new token
      *
-     * @return \Cake\Http\Cookie\Cookie
+     * @return AuthenticationToken
      */
-    public function renew(): Cookie
+    public function renewToken(): AuthenticationToken
     {
         $oldToken = $this->readAndValidateToken();
 
         $refreshTokenCreateService = new RefreshTokenCreateService();
-
         $newToken = $refreshTokenCreateService->createToken($this->userId);
-        $newCookie = $refreshTokenCreateService->createCookie($newToken);
         $this->deactivateToken($oldToken);
 
-        return $newCookie;
+        return $newToken;
+    }
+
+    /**
+     * Return a httponly secure cookie with the new token
+     *
+     * @param AuthenticationToken $token
+     * @return Cookie
+     */
+    public function renewCookie(AuthenticationToken $token): Cookie
+    {
+        $refreshTokenCreateService = new RefreshTokenCreateService();
+        return $refreshTokenCreateService->createCookie($token);
     }
 
     /**
@@ -78,12 +100,7 @@ class RefreshTokenRenewalService extends RefreshTokenAbstractService
      */
     protected function readAndValidateToken(): AuthenticationToken
     {
-        $refreshKey = $this->readRefreshTokenInRequest();
-        if (empty($refreshKey)) {
-            throw new BadRequestException(__('No refresh token is provided in the request.'));
-        }
-
-        $token = $this->findToken($refreshKey);
+        $token = $this->findToken($this->token);
 
         if ($token === null) {
             throw new InvalidRefreshKeyException(__(
@@ -115,16 +132,6 @@ class RefreshTokenRenewalService extends RefreshTokenAbstractService
     }
 
     /**
-     * Read the refresh token in the request cookies.
-     *
-     * @return string
-     */
-    protected function readRefreshTokenInRequest(): string
-    {
-        return $this->request->getCookie(self::REFRESH_TOKEN_COOKIE, '');
-    }
-
-    /**
      * Find the token corresponding to the user and refresh token.
      *
      * @param string $refreshToken Refresh token to retrieve.
@@ -145,18 +152,6 @@ class RefreshTokenRenewalService extends RefreshTokenAbstractService
         ])->first();
 
         return $refreshToken;
-    }
-
-    /**
-     * Find the authentication token from the refresh token in the request.
-     *
-     * @return \App\Model\Entity\AuthenticationToken|null
-     */
-    protected function findTokenInRequest(): ?AuthenticationToken
-    {
-        return $this->findToken(
-            $this->readRefreshTokenInRequest()
-        );
     }
 
     /**
