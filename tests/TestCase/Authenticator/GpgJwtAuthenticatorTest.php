@@ -12,12 +12,12 @@ declare(strict_types=1);
  * @copyright     Copyright (c) Passbolt SA (https://www.passbolt.com)
  * @license       https://opensource.org/licenses/AGPL-3.0 AGPL License
  * @link          https://www.passbolt.com Passbolt(tm)
- * @since         3.1.0
+ * @since         3.3.0
  */
 namespace App\Test\TestCase\Authenticator;
 
 use App\Authenticator\GpgJwtAuthenticator;
-use App\Utility\OpenPGP\OpenPGPBackendFactory;
+use App\Test\Lib\Utility\Gpg\GpgAdaSetupTrait;
 use App\Utility\UuidFactory;
 use Authentication\Authenticator\Result;
 use Authentication\Identifier\TokenIdentifier;
@@ -30,46 +30,18 @@ use Cake\TestSuite\TestCase;
 
 class GpgJwtAuthenticatorTest extends TestCase
 {
+    use GpgAdaSetupTrait;
+
     public $fixtures = [
         'app.Base/Users', 'app.Base/Roles', 'app.Base/Profiles', 'app.Base/Gpgkeys',
     ];
 
-    /**
-     * @var OpenPGPBackend $gpg
-     */
-    protected $gpg;
-
-    // Keys ids used in this test. Set in _gpgSetup.
-    protected $adaKeyId;
-    protected $serverKeyId;
     protected $sut;
 
     public function setUp(): void
     {
         parent::setUp();
         $this->sut = new GpgJwtAuthenticator(new TokenIdentifier());
-    }
-
-    /**
-     * Setup GPG and import the keys to be used in the tests
-     */
-    protected function gpgSetup()
-    {
-        // Make sure the keys are in the keyring
-        // if needed we add them for later use in the tests
-        if (Configure::read('passbolt.gpg.putenv')) {
-            putenv('GNUPGHOME=' . Configure::read('passbolt.gpg.keyring'));
-        }
-
-        $this->gpg = OpenPGPBackendFactory::get();
-        $this->gpg->clearKeys();
-
-        // Import the server key.
-        $this->serverKeyId = $this->gpg->importKeyIntoKeyring(file_get_contents(Configure::read('passbolt.gpg.serverKey.private')));
-        $this->gpg->importKeyIntoKeyring(file_get_contents(Configure::read('passbolt.gpg.serverKey.public')));
-
-        // Import the key of ada.
-        $this->adaKeyId = $this->gpg->importKeyIntoKeyring(file_get_contents(FIXTURES . DS . 'Gpgkeys' . DS . 'ada_private_nopassphrase.key'));
     }
 
     public function testGpgJwtAuthenticatorAuthenticateError_NoData()

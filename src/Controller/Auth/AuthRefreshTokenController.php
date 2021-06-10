@@ -46,36 +46,78 @@ class AuthRefreshTokenController extends AppController
      */
     public function refreshPost()
     {
-        $cookieBased = true;
-
-        $userId = $this->User->id() ?? $this->request->getData('user_id');
-        if (!isset($userId) || !Validation::uuid($userId)) {
-            throw new BadRequestException(__('A valid user id is required.'));
-        }
-
         $token = $this->request->getCookie(RefreshTokenRenewalService::REFRESH_TOKEN_COOKIE, null);
-        if (!isset($token)) {
-            $cookieBased = false;
-            $this->request->getData('refresh_token');
+        if (isset($token)) {
+            $body = $this->handleWithCookie($token);
+        } else {
+            $body = $this->handleWithChallenge();
         }
+
+        $this->success(null, $body);
+    }
+
+    /**
+     * Renew the refresh token, set the refresh token in the response
+     * as cookie, deliver a JWT token in the response
+     *
+     * @param string $token Refresh token passed as cookie.
+     * @return array
+     */
+    protected function handleWithCookie(string $token): array
+    {
+        $this->validateToken($token);
+
+        $refreshService = new RefreshTokenRenewalService($this->User->id(), $token);
+        $refreshedToken = $refreshService->renewToken();
+        $refreshHttpOnlySecureCookie = $refreshService->renewCookie($refreshedToken);
+        $this->setResponse($this->getResponse()->withCookie($refreshHttpOnlySecureCookie));
+        $accessToken = (new JwtTokenCreateService())->createToken($this->User->id());
+
+        return ['access_token' => $accessToken];
+    }
+
+    /**
+     * Get the refresh token in the payload.
+     * Return the challenge with the refreshed token.
+     *
+     * @return array
+     */
+    protected function handleWithChallenge(): array
+    {
+        $token = $this->request->getData('refresh_token');
+        $userId = $this->request->getData('user_id');
+
+        $this->validateToken($token);
+        $this->validateUserId($userId);
+
+        /** @var \App\Authenticator\GpgJwtAuthenticator $GpgJwtAuth */
+        $GpgJwtAuth = $this->getRequest()->getAttribute('authentication')->authenticators()->get('GpgJwt');
+        $challenge = $GpgJwtAuth->makeArmoredChallenge($token, $userId);
+
+        return compact('challenge');
+    }
+
+    /**
+     * @param string|null $token Refresh token
+     * @return void
+     * @throws \Cake\Http\Exception\BadRequestException
+     */
+    protected function validateToken(?string $token): void
+    {
         if (!isset($token) || !Validation::uuid($token)) {
             throw new BadRequestException(__('A valid refresh token is required.'));
         }
+    }
 
-        $refreshService = new RefreshTokenRenewalService($userId, $token);
-        $refreshedToken = $refreshService->renewToken();
-        $jwtToken = (new JwtTokenCreateService())->createToken($userId);
-        $result = [
-            'access_token' => $jwtToken,
-        ];
-
-        if ($cookieBased) {
-            $refreshHttpOnlySecureCookie = $refreshService->renewCookie($refreshedToken);
-            $this->setResponse($this->getResponse()->withCookie($refreshHttpOnlySecureCookie));
-        } else {
-            $result['refresh_token'] = $refreshedToken;
+    /**
+     * @param string|null $userId User ID
+     * @return void
+     * @throws \Cake\Http\Exception\BadRequestException
+     */
+    protected function validateUserId(?string $userId): void
+    {
+        if (!isset($userId) || !Validation::uuid($userId)) {
+            throw new BadRequestException(__('A valid user id is required.'));
         }
-
-        $this->success(__('The operation was successful.'), $result);
     }
 }

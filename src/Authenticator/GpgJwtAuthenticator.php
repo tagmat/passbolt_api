@@ -20,7 +20,7 @@ use App\Model\Entity\Role;
 use App\Model\Entity\User;
 use App\Model\Table\GpgkeysTable;
 use App\Service\JwtAuthentication\JwtTokenCreateService;
-use App\Service\JwtAuthentication\RefreshTokenCreateService;
+use App\Service\JwtAuthentication\RefreshTokenRenewalService;
 use App\Utility\OpenPGP\OpenPGPBackendFactory;
 use Authentication\Authenticator\AbstractAuthenticator;
 use Authentication\Authenticator\Result;
@@ -127,8 +127,23 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
      */
     public function successResult(string $verifyToken): Result
     {
-        $accessToken = (new JwtTokenCreateService())->createToken($this->user->id);
-        $refreshToken = (new RefreshTokenCreateService())->createToken($this->user->id);
+        $armoredChallenge = $this->makeArmoredChallenge($verifyToken, $this->user->id);
+        $data = ['challenge' => $armoredChallenge, 'user' => $this->user];
+
+        return new Result($data, Result::SUCCESS);
+    }
+
+    /**
+     * Create an encrypted challenge.
+     *
+     * @param string $verifyToken Refresh token.
+     * @param string $userId User ID.
+     * @return string
+     */
+    public function makeArmoredChallenge(string $verifyToken, string $userId): string
+    {
+        $accessToken = (new JwtTokenCreateService())->createToken($userId);
+        $refreshToken = (new RefreshTokenRenewalService($userId, $verifyToken))->renewToken();
         $challenge = json_encode([
             'version' => self::PROTOCOL_VERSION,
             'domain' => Router::url('/', true),
@@ -136,10 +151,8 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
             'access_token' => $accessToken,
             'refresh_token' => $refreshToken->token,
         ]);
-        $armoredChallenge = $this->gpg->encryptSign($challenge);
-        $data = ['challenge' => $armoredChallenge, 'user' => $this->user];
 
-        return new Result($data, Result::SUCCESS);
+        return $this->gpg->encryptSign($challenge);
     }
 
     /**

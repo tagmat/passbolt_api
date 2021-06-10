@@ -42,6 +42,9 @@ class JwtRequestDetectionService
             if ($controller === 'AuthJwtLogin' && $action === 'loginPost') {
                 return true;
             }
+            if ($controller === 'AuthRefreshToken' && $action === 'refreshPost') {
+                return true;
+            }
         }
 
         if ($request->getHeaderLine('Authorization') !== '') {

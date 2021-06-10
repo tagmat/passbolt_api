@@ -22,6 +22,7 @@ use App\Service\JwtAuthentication\RefreshTokenRenewalService;
 use App\Test\Factory\AuthenticationTokenFactory;
 use App\Test\Factory\UserFactory;
 use App\Test\Lib\AppIntegrationTestCase;
+use App\Test\Lib\Utility\Gpg\GpgAdaSetupTrait;
 use App\Test\Lib\Utility\JsonRequestTrait;
 use App\Utility\UuidFactory;
 use Cake\Datasource\ModelAwareTrait;
@@ -34,9 +35,16 @@ use Cake\TestSuite\IntegrationTestTrait;
  */
 class AuthRefreshTokenControllerTest extends AppIntegrationTestCase
 {
+    use GpgAdaSetupTrait;
     use IntegrationTestTrait;
     use JsonRequestTrait;
     use ModelAwareTrait;
+
+    public $fixtures = [
+        'app.Base/Users', 'app.Base/Roles', 'app.Base/Profiles', 'app.Base/Gpgkeys',
+    ];
+
+    public $autoFixtures = false;
 
     public function setUp(): void
     {
@@ -142,5 +150,48 @@ class AuthRefreshTokenControllerTest extends AppIntegrationTestCase
         $this->postJson('/auth/jwt/refresh.json', ['user_id' => $user->id]);
         $this->assertResponseCode(401);
         $this->assertResponseError('The refresh token provided is expired.');
+    }
+
+    public function testAuthRefreshTokenControllerAuthenticatedWithValidPayload()
+    {
+        $this->loadFixtures();
+        $this->gpgSetup();
+
+        $userId = UuidFactory::uuid('user.id.ada');
+        $oldRefreshToken = AuthenticationTokenFactory::make()
+            ->active()
+            ->type(AuthenticationToken::TYPE_REFRESH_TOKEN)
+            ->userId($userId)
+            ->persist()
+            ->token;
+
+        $this->postJson('/auth/jwt/refresh.json', [
+            'user_id' => $userId,
+            'refresh_token' => $oldRefreshToken,
+        ]);
+        $this->assertResponseSuccess();
+        $this->assertStringContainsString('-----BEGIN PGP MESSAGE-----', $this->_responseJsonBody->challenge);
+    }
+
+    public function testAuthRefreshTokenControllerAuthenticatedWithExpiredPayload()
+    {
+        $this->loadFixtures();
+        $this->gpgSetup();
+
+        $userId = UuidFactory::uuid('user.id.ada');
+        $oldRefreshToken = AuthenticationTokenFactory::make()
+            ->active()
+            ->type(AuthenticationToken::TYPE_REFRESH_TOKEN)
+            ->userId($userId)
+            ->expired()
+            ->persist()
+            ->token;
+
+        $this->postJson('/auth/jwt/refresh.json', [
+            'user_id' => $userId,
+            'refresh_token' => $oldRefreshToken,
+        ]);
+        $this->assertResponseError('The refresh token provided is expired.');
+        $this->assertResponseCode(401);
     }
 }
