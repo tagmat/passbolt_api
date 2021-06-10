@@ -20,7 +20,7 @@ use App\Model\Entity\Role;
 use App\Model\Entity\User;
 use App\Model\Table\GpgkeysTable;
 use App\Service\JwtAuthentication\JwtTokenCreateService;
-use App\Service\JwtAuthentication\RefreshTokenRenewalService;
+use App\Service\JwtAuthentication\RefreshTokenCreateService;
 use App\Utility\OpenPGP\OpenPGPBackendFactory;
 use Authentication\Authenticator\AbstractAuthenticator;
 use Authentication\Authenticator\Result;
@@ -127,7 +127,9 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
      */
     public function successResult(string $verifyToken): Result
     {
-        $armoredChallenge = $this->makeArmoredChallenge($verifyToken, $this->user->id);
+        $accessToken = (new JwtTokenCreateService())->createToken($this->user->id);
+        $refreshToken = (new RefreshTokenCreateService())->createToken($this->user->id);
+        $armoredChallenge = $this->makeArmoredChallenge($accessToken, $refreshToken->token, $verifyToken);
         $data = ['challenge' => $armoredChallenge, 'user' => $this->user];
 
         return new Result($data, Result::SUCCESS);
@@ -136,23 +138,24 @@ class GpgJwtAuthenticator extends AbstractAuthenticator
     /**
      * Create an encrypted challenge.
      *
-     * @param string $verifyToken Refresh token.
-     * @param string $userId User ID.
-     * @return string
+     * @param string $accessToken access token.
+     * @param string $refreshToken access token.
+     * @param string|null $verifyToken verify token.
+     * @return string encrypted challenge
      */
-    public function makeArmoredChallenge(string $verifyToken, string $userId): string
+    public function makeArmoredChallenge(string $accessToken, string $refreshToken, ?string $verifyToken = null): string
     {
-        $accessToken = (new JwtTokenCreateService())->createToken($userId);
-        $refreshToken = (new RefreshTokenRenewalService($userId, $verifyToken))->renewToken();
-        $challenge = json_encode([
+        $challenge = [
             'version' => self::PROTOCOL_VERSION,
             'domain' => Router::url('/', true),
-            'verify_token' => $verifyToken,
             'access_token' => $accessToken,
-            'refresh_token' => $refreshToken->token,
-        ]);
+            'refresh_token' => $refreshToken,
+        ];
+        if (isset($verifyToken)) {
+            $challenge['verify_token'] = $verifyToken;
+        }
 
-        return $this->gpg->encryptSign($challenge);
+        return $this->gpg->encryptSign(json_encode($challenge));
     }
 
     /**

@@ -169,6 +169,7 @@ class AuthRefreshTokenControllerTest extends AppIntegrationTestCase
             'user_id' => $userId,
             'refresh_token' => $oldRefreshToken,
         ]);
+
         $this->assertResponseSuccess();
         $this->assertStringContainsString('-----BEGIN PGP MESSAGE-----', $this->_responseJsonBody->challenge);
     }

@@ -91,8 +91,15 @@ class AuthRefreshTokenController extends AppController
         $this->validateUserId($userId);
 
         /** @var \App\Authenticator\GpgJwtAuthenticator $GpgJwtAuth */
-        $GpgJwtAuth = $this->getRequest()->getAttribute('authentication')->authenticators()->get('GpgJwt');
-        $challenge = $GpgJwtAuth->makeArmoredChallenge($token, $userId);
+        $GpgJwtAuth = $this->getRequest()
+            ->getAttribute('authentication')
+            ->authenticators()
+            ->get('GpgJwt');
+
+        $accessToken = (new JwtTokenCreateService())->createToken($userId);
+        $refreshToken = (new RefreshTokenRenewalService($userId, $token))->renewToken();
+
+        $challenge = $GpgJwtAuth->makeArmoredChallenge($accessToken, $refreshToken->token);
 
         return compact('challenge');
     }

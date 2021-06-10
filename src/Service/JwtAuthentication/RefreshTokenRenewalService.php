@@ -102,9 +102,8 @@ class RefreshTokenRenewalService extends RefreshTokenAbstractService
         $token = $this->findToken($this->token, $this->userId);
 
         if ($token === null) {
-            throw new InvalidRefreshKeyException(__(
-                'No active refresh token matching the request could be found.'
-            ));
+            $msg = __('No active refresh token matching the request could be found.');
+            throw new InvalidRefreshKeyException($msg);
         } elseif ($this->AuthenticationTokens->isExpired($token)) {
             throw new InvalidRefreshKeyException(__('The refresh token provided is expired.'));
         }
