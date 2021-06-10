@@ -24,7 +24,7 @@ use InvalidArgumentException;
 
 class JwtTokenCreateService extends JwtAbstractService
 {
-    public const SECRET_KEY_PATH = CONFIG . '/jwt/jwt.key';
+    public const SECRET_KEY_PATH = CONFIG . 'jwt/jwt.key';
     public const ALG = 'RS256';
     public const HEADER = 'Authorization';
 
