@@ -49,7 +49,7 @@ class JwtKeyPairCreateService
 
         if ($pairIsNotComplete || $force) {
             # generate private key
-            exec('openssl genrsa -out ' . $secretFile . ' 1024');
+            exec('openssl genrsa -out ' . $secretFile . ' 4096');
             # generate public key
             exec('openssl rsa -in ' . $secretFile . ' -outform PEM -pubout -out ' . $publicFile);
 
