@@ -30,7 +30,7 @@ class AuthJwksController extends AppController
     {
         parent::beforeFilter($event);
 
-        $this->Authentication->allowUnauthenticated(['index']);
+        $this->Authentication->allowUnauthenticated(['rsa', 'jwks']);
     }
 
     /**
@@ -38,10 +38,24 @@ class AuthJwksController extends AppController
      *
      * @return void
      */
-    public function index()
+    public function rsa(): void
+    {
+        $keydata['keydata'] = (new JwksGetService())->getRawPublicKey();
+        $this->success(__('The operation was successful.'), $keydata);
+    }
+
+    /**
+     * Serve the JWT public key
+     *
+     * @return void
+     */
+    public function jwks(): void
     {
         $keys['keys'][] = (new JwksGetService())->getPublicKey();
 
-        $this->success(__('The operation was successful.'), $keys);
+        // Do not use regular envelope as this is a normalized endpoint
+        $this->set(compact('keys'));
+        $this->viewBuilder()->setOption('serialize', 'keys');
+        $this->setViewBuilderOptions();
     }
 }

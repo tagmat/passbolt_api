@@ -32,6 +32,7 @@ Router::scope('/', function (RouteBuilder $routes) {
     $routes->redirect('users/login', '/auth/login');
     $routes->redirect('logout', '/auth/logout');
     $routes->redirect('recover', '/users/recover');
+    $routes->redirect('.well-known/jwks.json', '/auth/jwt/jwks.json');
 });
 
 /**
@@ -73,7 +74,10 @@ Router::scope('/auth', function (RouteBuilder $routes) {
     $routes->connect('/jwt/login', ['prefix' => 'Auth', 'controller' => 'AuthJwtLogin', 'action' => 'loginPost'])
         ->setMethods(['POST']);
 
-    $routes->connect('/jwt/jwks', ['prefix' => 'Auth', 'controller' => 'AuthJwks', 'action' => 'index'])
+    $routes->connect('/jwt/rsa', ['prefix' => 'Auth', 'controller' => 'AuthJwks', 'action' => 'rsa'])
+        ->setMethods(['GET']);
+
+    $routes->connect('/jwt/jwks', ['prefix' => 'Auth', 'controller' => 'AuthJwks', 'action' => 'jwks'])
         ->setMethods(['GET']);
 
     $routes->connect('/jwt/refresh', ['prefix' => 'Auth', 'controller' => 'AuthRefreshToken', 'action' => 'refreshPost'])

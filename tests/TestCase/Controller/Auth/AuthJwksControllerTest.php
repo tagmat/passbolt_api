@@ -25,15 +25,28 @@ class AuthJwksControllerTest extends TestCase
     use IntegrationTestTrait;
     use JsonRequestTrait;
 
-    public function testAuthVerifyControllerUserGetSuccess()
+    public function testAuthJwksControllerRsaSuccess()
     {
-        $this->getJson('/auth/jwt/jwks.json');
-        $this->assertCount(1, $this->_responseJsonBody->keys);
+        $this->getJson('/auth/jwt/rsa.json');
         $this->assertResponseOk();
-        $responseKeys = $this->_responseJsonBody->keys;
-        $this->assertCount(1, $responseKeys);
+        $responseKeys = $this->_responseJsonBody->keydata;
+        $this->assertTextContains('-----BEGIN PUBLIC KEY-----', $responseKeys);
+    }
+
+    public function testAuthJwksControllerJwksSuccess()
+    {
+        $this->get('/auth/jwt/jwks.json');
+        $this->_responseJsonBody = json_decode($this->_getBodyAsString());
+        $this->assertResponseOk();
+        $this->assertCount(1, $this->_responseJsonBody->keys);
         $responseKey = $this->_responseJsonBody->keys[0];
         $this->assertSame('RSA', $responseKey->kty);
         $this->assertSame('RS256', $responseKey->alg);
+    }
+
+    public function testAuthJwksControllerJwksRedirect()
+    {
+        $this->get('/.well-known/jwks.json');
+        $this->assertResponseCode(301);
     }
 }

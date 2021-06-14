@@ -45,4 +45,13 @@ class JwksGetService extends JwtAbstractService
             'n' => JWT::urlsafeB64Encode($detail['rsa']['n']),
         ];
     }
+
+    /**
+     * @return string
+     * @throws \App\Error\Exception\JWT\InvalidJwtKeyPairException if the public key file is not found or not readable.
+     */
+    public function getRawPublicKey(): string
+    {
+        return $this->readKeyFileContent();
+    }
 }
