@@ -243,6 +243,13 @@ return [
             'client' => env('EMAIL_TRANSPORT_DEFAULT_CLIENT', null),
             'tls' => env('EMAIL_TRANSPORT_DEFAULT_TLS', null),
             'url' => env('EMAIL_TRANSPORT_DEFAULT_URL', null),
+            'context' => [  
+                'ssl' => [
+                    'verify_peer' => env('EMAIL_TRANSPORT_DEFAULT_CONTEXT_SSL_VERIFY_PEER', true),
+                    'verify_peer_name' => env('EMAIL_TRANSPORT_DEFAULT_CONTEXT_SSL_VERIFY_PEER_NAME', true),
+                    'allow_self_signed' => env('EMAIL_TRANSPORT_DEFAULT_CONTEXT_SSL_ALLOW_SELF_SIGNED', false)
+                ]
+            ],
 
         ],
         'Debug' => [
